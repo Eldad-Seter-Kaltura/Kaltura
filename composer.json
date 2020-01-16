@@ -1,0 +1,6 @@
+{
+    "require": {
+        "kaltura/api-client-library": "^15.10",
+      "ext-simplexml": "*"
+    }
+}
