@@ -22,9 +22,9 @@ use Kaltura\Client\Enum\FlavorAssetStatus as KalturaFlavorStatus;
 
 
 define('SERVICE_URL', "http://www.kaltura.com");
-define('ADMIN_SECRET', "5925f522d15d279512c3cf0793beb1cf");     //MMU Secret
+define('ADMIN_SECRET', "");     //MMU Secret
 define('USER_ID', "");
-define('PARTNER_ID', 1128062);                                  //MMU
+define('PARTNER_ID', 0);                                  //MMU
 define('EXPIRY', 86400);
 define('PRIVILEGES', '');
 
