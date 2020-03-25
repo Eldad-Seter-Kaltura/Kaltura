@@ -28,16 +28,16 @@ class KalturaLogger implements ILogger {
 }
 
 // params
-define('SERVICE_URL', "https://www.kaltura.com");
-define('ADMIN_SECRET', "2938a5995819fb83d076a9a2b615b73f");
-define('USER_ID', "Roy");
-define('PARTNER_ID', 331501);
-define('EXPIRY', 7*86400);
-define('PRIVILEGES', 'disableentitlement');
+define('SERVICE_URL', "http://...");
+define('ADMIN_SECRET', "...");
+define('USER_ID', "...");
+define('PARTNER_ID', 0);
+define('EXPIRY', 86400);
+define('PRIVILEGES', '');
 
 define('PAGE_SIZE', 500);
 
-define('PROFILE_ID', 574132);
+define('PROFILE_ID', 0);
 
 // init kaltura configuration
 $config = new KalturaConfiguration();
