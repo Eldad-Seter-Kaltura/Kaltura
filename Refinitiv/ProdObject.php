@@ -1,39 +1,21 @@
 <?php
-
+require_once ('ClientObject.php');
 
 class ProdObject
 {
-	private $hostname;
-
-	private $partnerId;
-
-	private $partnerAdminSecret;
+	private $timeStamp;
 
 	private $categoryArray;
 
-	public function __construct($m_hostname, $m_partnerID, $m_partnerAdminSecret, $m_categoryArray) {
-		$this->hostname           = $m_hostname;
-		$this->partnerId          = $m_partnerID;
-		$this->partnerAdminSecret = $m_partnerAdminSecret;
-		$this->categoryArray      = $m_categoryArray;
+	public function __construct($m_timeStamp, $m_categoryArray) {
+		$this->timeStamp = $m_timeStamp;
+		$this->categoryArray = $m_categoryArray;
 	}
 
-	public function startClient() {
-		$config             = new KalturaConfiguration();
-		$config->serviceUrl = $this->hostname;
-		$client             = new KalturaClient($config);
+	public function deleteAllFlavorsAccordingAccordingToCategories($isRealRun, $clientObject, $timeStamp, $outputPathCsv) {
 
-		$session = $client->generateSession($this->partnerAdminSecret, NULL, 2, $this->partnerId, 86400, 'disableentitlements');
-		$client->setKs($session);
-		echo "Kaltura session (ks) for partner id " . $this->partnerId . " was created successfully: \n" . $client->getKs() . "\n";
-
-		return $client;
-	}
-
-	public function printAllFlavorsGoingToBeDeleted($client, $timestampThreeYearsAgo, $outputPathCsv) {
 		$outputCsv = fopen($outputPathCsv, 'w');
 		fputcsv($outputCsv, array('EntryID', 'Name', 'MediaType', 'CategoriesFullName', 'FlavorNames', 'CreatedAt', 'UpdatedAt', 'LastPlayedAt'));
-
 
 		$pager            = new KalturaFilterPager();
 		$pager->pageSize  = 500;
@@ -41,165 +23,100 @@ class ProdObject
 
 		$mediaEntryFilter              = new KalturaMediaEntryFilter();
 		$mediaEntryFilter->statusEqual = KalturaEntryStatus::READY;
+		$mediaEntryFilter->mediaTypeIn = KalturaMediaType::VIDEO . "," . KalturaMediaType::IMAGE . "," . KalturaMediaType::AUDIO;
 		$mediaEntryFilter->orderBy     = KalturaMediaEntryOrderBy::CREATED_AT_ASC;
 
-		$mediaEntryFilter->createdAtLessThanOrEqual          = $timestampThreeYearsAgo;
-		$mediaEntryFilter->updatedAtLessThanOrEqual          = $timestampThreeYearsAgo;
-		$mediaEntryFilter->lastPlayedAtLessThanOrEqualOrNull = $timestampThreeYearsAgo;
+		$mediaEntryFilter->createdAtLessThanOrEqual          = $timeStamp;
+		$mediaEntryFilter->updatedAtLessThanOrEqual          = $timeStamp;
+		$mediaEntryFilter->lastPlayedAtLessThanOrEqualOrNull = $timeStamp;
 
 		$flavorAssetFilter              = new KalturaFlavorAssetFilter();
 		$flavorAssetFilter->statusEqual = KalturaFlavorAssetStatus::READY;
 
-		$flavorParamsKeyToValueArrayRule5 = array();
+		$flavorParamsIdsArrayRule5 = array(1248522, 487061, 1248502, 487041, 2027202);
+		$this->deleteAllFlavorsRule5($isRealRun, $mediaEntryFilter, $pager, $this->categoryArray, $flavorAssetFilter, $flavorParamsIdsArrayRule5, $clientObject, $outputCsv);
 
-		//"advance knowledge" from customer KMC -> Settings -> Transcoding (otherwise- api calls)
-
-		$flavorParamsKeyToValueArrayRule5[1248522] = "SD/Small - WEB/MBL (H264/900)-MONO";
-		$flavorParamsKeyToValueArrayRule5[487061]  = "SD/Small - WEB/MBL (H264/900)";
-		$flavorParamsKeyToValueArrayRule5[1248502] = "Basic/Small - WEB/MBL (H264/400)-MONO";
-		$flavorParamsKeyToValueArrayRule5[487041]  = "Basic/Small - WEB/MBL (H264/400)";
-		$flavorParamsKeyToValueArrayRule5[2027202] = "Audio Only - English (Mono) (128 Kbps) (Download)";
-
-		$this->printAllFlavorsRule5($mediaEntryFilter, $pager, $this->categoryArray, $flavorAssetFilter, $flavorParamsKeyToValueArrayRule5, $client, $outputCsv);
-
-		$flavorParamsKeyToValueArrayOtherRules = array();
-
-		$flavorParamsKeyToValueArrayOtherRules[1248532] = "SD/Large - WEB/MBL (H264/1500)-MONO";
-		$flavorParamsKeyToValueArrayOtherRules[487071]  = "SD/Large - WEB/MBL (H264/1500)";
-		$flavorParamsKeyToValueArrayOtherRules[1248502] = "Basic/Small - WEB/MBL (H264/400)-MONO";
-		$flavorParamsKeyToValueArrayOtherRules[487041]  = "Basic/Small - WEB/MBL (H264/400)";
-		$flavorParamsKeyToValueArrayOtherRules[2027202] = "Audio Only - English (Mono) (128 Kbps) (Download)";
-
+		$flavorParamsIdsArrayOtherRules = array(1248532, 487071, 1248502, 487041, 2027202);
 		for($i = 0; $i < count($this->categoryArray); $i++) {
-			$this->printAllFlavorsRule($i + 6, $mediaEntryFilter, $pager, $this->categoryArray[$i], $flavorAssetFilter, $flavorParamsKeyToValueArrayOtherRules, $client, $outputCsv);
+			$this->deleteAllFlavorsRule($i + 6, $isRealRun, $mediaEntryFilter, $pager, $this->categoryArray[$i], $flavorAssetFilter, $flavorParamsIdsArrayOtherRules, $clientObject, $outputCsv);
 		}
 
 	}
 
-	private function printAllFlavorsRule5($mediaEntryFilter, $pager, $categoryArray, $flavorAssetFilter, $flavorParamsArray, $client, $outputCsv) {
+	private function deleteAllFlavorsRule5($isRealRun, $mediaEntryFilter, $pager, $categoryArray, $flavorAssetFilter, $flavorParamsIdsArrayRule5, $clientObject, $outputCsv) {
+
+		echo 'Deleting all flavors of rule 5' . ' if real run: ' . ($isRealRun ? 'true' : 'false') . "\n\n";
 
 		$categoryString                             = implode(",", $categoryArray);
 		$mediaEntryFilter->categoriesIdsNotContains = $categoryString;
 
-		$this->printAllFlavors($mediaEntryFilter, $pager, $flavorAssetFilter, $flavorParamsArray, $client, $outputCsv);
-
+		$this->deleteAllFlavorsAccordingToRule($isRealRun, $mediaEntryFilter, $pager, $flavorAssetFilter, $flavorParamsIdsArrayRule5, $clientObject, $outputCsv);
 	}
 
-	private function printAllFlavorsRule($number, $mediaEntryFilter, $pager, $categoryId, $flavorAssetFilter, $flavorParamsArray, $client, $outputCsv) {
+	private function deleteAllFlavorsRule($number, $isRealRun, $mediaEntryFilter, $pager, $categoryId, $flavorAssetFilter, $flavorParamsIdsArrayOtherRules, $clientObject, $outputCsv) {
 
-		echo 'Printing all flavors of rule ' . $number . "\n\n";
+		echo 'Deleting all flavors of rule ' . $number . ' if real run ' . ($isRealRun ? 'true' : 'false') . "\n\n";
 
-		$mediaEntryFilter->categoriesIdsMatchAnd = $categoryId;     //TODO: is this the right filter?
-		$this->printAllFlavors($mediaEntryFilter, $pager, $flavorAssetFilter, $flavorParamsArray, $client, $outputCsv);
-
+		$mediaEntryFilter->categoriesIdsMatchAnd = $categoryId;
+		$this->deleteAllFlavorsAccordingToRule($isRealRun, $mediaEntryFilter, $pager, $flavorAssetFilter, $flavorParamsIdsArrayOtherRules, $clientObject, $outputCsv);
 	}
 
-	private function printAllFlavors($mediaEntryFilter, $pager, $flavorAssetFilter, $flavorParamsArray, $client, $outputCsv) {
+	private function deleteAllFlavorsAccordingToRule($isRealRun, $mediaEntryFilter, $pager, $flavorAssetFilter, $flavorParamsIdsOfRule, $clientObject, $outputCsv) {
 
-		try {
-			$mediaList = $client->media->listAction($mediaEntryFilter, $pager);
-			echo 'Total number of entries: ' . $mediaList->totalCount . "\n\n";
-		} catch(Exception $e) {
-			die($e->getMessage());
-		}
+		/* @var $clientObject ClientObject */
+
+		$message   = 'Total number of entries: ';
+		$mediaList = $clientObject->doMediaList($mediaEntryFilter, $pager, $message, 1, $outputCsv);
 
 		while(count($mediaList->objects)) {
+
 			/* @var $currentEntry KalturaMediaEntry */
 			foreach($mediaList->objects as $currentEntry) {
 
-				$type = $currentEntry->mediaType;
-				switch($type) {
-					case KalturaMediaType::VIDEO:
-						$type = "VIDEO";
-						break;
-					case KalturaMediaType::IMAGE:
-						$type = "IMAGE";
-						break;
-					case KalturaMediaType::AUDIO:
-						$type = "AUDIO";
-						break;
-					default:
-						$type = "OTHER";
-						break;
-				}
+				$type = $this->gettingTypeOfEntry($currentEntry);
 
-				//getting categories of entry..
-
-				$categoryEntryFilter               = new KalturaCategoryEntryFilter();
-				$categoryEntryFilter->entryIdEqual = $currentEntry->id;
-				$categoryEntryList                 = $this->doCategoryEntryList($categoryEntryFilter, $client, 1, $outputCsv);   //TODO: can return multiple results (categories)
-
-				$categoriesOfEntry = array();
-				if(count($categoryEntryList->objects)) {
-					foreach($categoryEntryList->objects as $categoryEntry) {
-						/* @var $categoryEntry KalturaCategoryEntry */
-						$categoriesOfEntry[] = $categoryEntry->categoryId;
-					}
-				}
-//				$categoriesOfEntryString = implode(",", $categoriesOfEntry);
-
-				$categoriesFullName = array();
-				foreach($categoriesOfEntry as $categoryId) {
-					$category = $this->doCategoryGet($categoryId, $client, 1);
-					if($category) {
-						$categoriesFullName[] = $category->fullName;
-					}
-					//TODO: is there a better way to do this?
-				}
-				$categoriesFullNameString = implode(",", $categoriesFullName);
+				$categoriesFullNameString = $this->gettingCategoryNamesOfEntry($currentEntry, $clientObject, $outputCsv);
 
 				//getting flavors..
-
 				$flavorAssetFilter->entryIdEqual = $currentEntry->id;
+				$flavorAssetList = $clientObject->doFlavorAssetList($flavorAssetFilter, 1, $outputCsv);
 
-				$flavorAssetList = $this->doFlavorAssetList($flavorAssetFilter, $client, 1, $outputCsv);
-
-				$flavorParamsRule = array_keys($flavorParamsArray);
-
-				$flavorAssetArrayWithoutSrcAndOthers = array();
+				$flavorAssetIdParamIdWithoutSrcAndOthers = array();
 				/* @var $flavorAsset KalturaFlavorAsset */
 				foreach($flavorAssetList->objects as $flavorAsset) {
-					$flavorParam = (int)($flavorAsset->flavorParamsId);
-					if($flavorParam != 0) {
+					$flavorParamId = (int)($flavorAsset->flavorParamsId);
+					if($flavorParamId != 0) {
 						$isEqual = FALSE;
-						foreach($flavorParamsRule as $flavorParamRule) {
-							if($flavorParam == $flavorParamRule) {
+						foreach($flavorParamsIdsOfRule as $flavorParamIdOfRule) {
+							if($flavorParamId == $flavorParamIdOfRule) {
 								$isEqual = TRUE;
+								break;
 							}
 						}
-						//flavorparam != all of those
+						//flavorParamId != all of those
 						if(!$isEqual) {
 							//key-value
-							$flavorAssetArrayWithoutSrcAndOthers[$flavorAsset->id] = $flavorAsset;
+							$flavorAssetIdParamIdWithoutSrcAndOthers[$flavorAsset->id] = $flavorParamId;
 						}
 					}
 				}
 
-				//get only the IDs
-				$flavorAssetIds  = array_map(function ($object) {
-					return $object->id;
-				}, $flavorAssetArrayWithoutSrcAndOthers);
-				$flavorsToDelete = implode(" ", $flavorAssetIds);
-
 				//now we're ready to delete
-				foreach($flavorAssetIds as $flavorAssetId) {
-					//$this->doFlavorAssetDelete($flavorAssetId, $client, 1);
+				if($isRealRun) {
+					foreach(array_keys($flavorAssetIdParamIdWithoutSrcAndOthers) as $flavorAssetId) {
+						$clientObject->doFlavorAssetDelete($flavorAssetId, 1);
+					}
 				}
 
-				//get params ids for printing
-				$flavorParamsIds = array_map(function ($object) {
-					return $object->flavorParamsId;
-				},
-					$flavorAssetArrayWithoutSrcAndOthers);
-
-				$flavorNamesArray = array();
-				foreach($flavorParamsIds as $flavorIdToDelete) {
-					$flavorNamesArray[] = $flavorParamsArray[$flavorIdToDelete];
+				$flavorParamNamesArray = array();
+				foreach($flavorAssetIdParamIdWithoutSrcAndOthers as $flavorParamIdToDelete) {
+					$flavorParamObject = $clientObject->doFlavorParamsGet($flavorParamIdToDelete, 1);
+					$flavorParamNamesArray[$flavorParamIdToDelete] = $flavorParamObject->name;
 				}
-				$flavorNamesToDelete = implode(",", $flavorNamesArray);
+				$flavorParamNamesToDelete = implode(",", $flavorParamNamesArray);
 
 				//printing..
-				fputcsv($outputCsv, array($currentEntry->id, $currentEntry->name, $type, $categoriesFullNameString, $flavorNamesToDelete, $currentEntry->createdAt, $currentEntry->updatedAt,
+				fputcsv($outputCsv, array($currentEntry->id, $currentEntry->name, $type, $categoriesFullNameString, $flavorParamNamesToDelete, $currentEntry->createdAt, $currentEntry->updatedAt,
 					$currentEntry->lastPlayedAt));
 
 			}
@@ -208,155 +125,50 @@ class ProdObject
 
 			//media . list - next iterations
 			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
-			$this->doMediaList($mediaEntryFilter, $pager, $client, 1, $outputCsv);
-
+			$clientObject->doMediaList($mediaEntryFilter, $pager, "", 1, $outputCsv);
 		}
 	}
 
-
-	private function doMediaList($mediaEntryFilter, $pager, $client, $numberOfTrials, $outputCsv) {
-		/* @var $mediaList KalturaMediaListResponse */
-
-		if($numberOfTrials > 3) {
-			fputcsv($outputCsv, array('Exceeded number of trials for this list. Moving on to next list'));
-			return $mediaList;
+	private function gettingTypeOfEntry(KalturaMediaEntry $currentEntry) {
+		$type = $currentEntry->mediaType;
+		switch($type) {
+			case KalturaMediaType::VIDEO:
+				$type = "VIDEO";
+				break;
+			case KalturaMediaType::IMAGE:
+				$type = "IMAGE";
+				break;
+			case KalturaMediaType::AUDIO:
+				$type = "AUDIO";
+				break;
+			default:
+				$type = "OTHER";
+				break;
 		}
-
-		/* @var $client KalturaClient */
-		try {
-			$mediaList = $client->media->listAction($mediaEntryFilter, $pager);
-
-		} catch(KalturaException $apiException) {
-			echo $apiException->getMessage() . "\n\n";
-			return $mediaList;
-
-		} catch(KalturaClientException $clientException) {
-			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
-			$newClient = $this->resetConnection($client);
-			sleep(3);
-
-			//retry
-			$mediaList = $this->doMediaList($mediaEntryFilter, $pager, $newClient, ++$numberOfTrials, $outputCsv);
-		}
-
-		return $mediaList;
+		return $type;
 	}
 
-	private function doCategoryEntryList($categoryEntryFilter, $client, $numberOfTrials, $outputCsv) {
-		/* @var $categoryEntryList KalturaCategoryEntryListResponse */
+	private function gettingCategoryNamesOfEntry(KalturaMediaEntry $currentEntry, ClientObject $clientObject, $outputCsv) {
 
-		if($numberOfTrials > 3) {
-			fputcsv($outputCsv, array('Exceeded number of trials for this list. Going back to next list'));
-			return $categoryEntryList;
+		$categoryEntryFilter               = new KalturaCategoryEntryFilter();
+		$categoryEntryFilter->entryIdEqual = $currentEntry->id;
+		$categoryEntryList                 = $clientObject->doCategoryEntryList($categoryEntryFilter, 1, $outputCsv);   //TODO: can return multiple results (categories)
+
+		$categoriesOfEntry = array();
+		if(count($categoryEntryList->objects)) {
+			foreach($categoryEntryList->objects as $categoryEntry) {
+				/* @var $categoryEntry KalturaCategoryEntry */
+				$categoriesOfEntry[] = $categoryEntry->categoryId;
+			}
 		}
 
-		/* @var $client KalturaClient */
-		try {
-			$categoryEntryList = $client->categoryEntry->listAction($categoryEntryFilter);
-
-		} catch(KalturaException $apiException) {
-			echo $apiException->getMessage() . "\n\n";
-			return $categoryEntryList;
-
-		} catch(KalturaClientException $clientException) {
-			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
-			$newClient = $this->resetConnection($client);
-			sleep(3);
-
-			//retry
-			$categoryEntryList = $this->doCategoryEntryList($categoryEntryFilter, $newClient, ++$numberOfTrials, $outputCsv);
+		$categoriesFullName = array();
+		foreach($categoriesOfEntry as $categoryId) {
+			$category = $clientObject->doCategoryGet($categoryId, 1);
+			if($category && $category->id == $categoryId) {
+				$categoriesFullName[] = $category->fullName;
+			}
 		}
-
-		return $categoryEntryList;
+		return implode(",", $categoriesFullName);
 	}
-
-	private function doCategoryGet($categoryId, $client, $numberOfTrials) {
-		/* @var $category KalturaCategory */
-
-		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for category ' . $categoryId . '. Moving on to next category' . "\n\n";
-			return $category;
-		}
-
-		/* @var $client KalturaClient */
-		try {
-			$category = $client->category->get($categoryId);
-		} catch(KalturaException $apiException) {
-			echo $apiException->getMessage() . "\n\n";
-
-		} catch(KalturaClientException $e) {
-			echo $e->getMessage() . "\n\n";
-			$newClient = $this->resetConnection($client);
-			sleep(3);
-
-			//retry
-			$this->doCategoryGet($categoryId, $newClient, ++$numberOfTrials);
-		}
-
-		return $category;
-	}
-
-	private function doFlavorAssetList($flavorAssetFilter, $client, $numberOfTrials, $outputCsv) {
-		/* @var $flavorAssetList KalturaFlavorAssetListResponse */
-
-		if($numberOfTrials > 3) {
-			fputcsv($outputCsv, array('Exceeded number of trials for this list. Going back to next list'));
-			return $flavorAssetList;
-		}
-
-		/* @var $client KalturaClient */
-		try {
-			$flavorAssetList = $client->flavorAsset->listAction($flavorAssetFilter);
-		} catch(KalturaException $apiException) {
-			echo $apiException->getMessage() . "\n\n";
-			return $flavorAssetList;
-
-		} catch(KalturaClientException $clientException) {
-			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
-			$newClient = $this->resetConnection($client);
-			sleep(3);
-
-			//retry
-			$flavorAssetList = $this->doFlavorAssetList($flavorAssetFilter, $newClient, ++$numberOfTrials, $outputCsv);
-		}
-
-		return $flavorAssetList;
-	}
-
-	private function doFlavorAssetDelete($flavorAssetId, $client, $numberOfTrials) {
-		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for this flavor. Moving on to next flavor' . "\n\n";
-			return;
-		}
-
-		/* @var $client KalturaClient */
-		try {
-			$client->flavorAsset->delete($flavorAssetId);
-			echo 'Flavor asset ' . $flavorAssetId . ' was deleted' . "\n\n";
-		} catch(KalturaException $apiException) {
-			echo $apiException->getMessage() . "\n\n";
-
-		} catch(KalturaClientException $e) {
-			echo $e->getMessage() . "\n\n";
-			$newClient = $this->resetConnection($client);
-			sleep(3);
-
-			//retry
-			$this->doFlavorAssetDelete($flavorAssetId, $newClient, ++$numberOfTrials);
-		}
-
-	}
-
-	private function resetConnection($oldClient) {
-		/* @var $oldClient KalturaClient */
-		$oldConfig = $oldClient->getConfig();
-
-		$newClient = new KalturaClient($oldConfig);
-		$ks        = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 86400, 'disableentitlements');
-		$newClient->setKs($ks);
-
-		return $newClient;
-	}
-
-
 }
