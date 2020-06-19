@@ -5,7 +5,7 @@ require_once('php7/KalturaClient.php');
 class ClientObject
 {
 	/* @var $client KalturaClient */
-	public $client;
+	private $client;
 
 	private $hostname;
 
@@ -31,11 +31,11 @@ class ClientObject
 		$this->client = $client;
 	}
 
-	public function doMediaList($mediaEntryFilter, $pager, $message, $numberOfTrials, $outputCsv) {
+	public function doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $mediaList KalturaMediaListResponse */
 
 		if($numberOfTrials > 3) {
-			fputcsv($outputCsv, array('Exceeded number of trials for this list. Moving on to next list'));
+			echo $trialsExceededMessage;
 			return $mediaList;
 		}
 
@@ -50,22 +50,22 @@ class ClientObject
 			return $mediaList;
 
 		} catch(KalturaClientException $clientException) {
-			echo 'Client exception occured. ' . $clientException->getMessage()  . "\n\n";
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
 			$this->resetConnection();
 			sleep(3);
 
 			//retry
-			$mediaList = $this->doMediaList($mediaEntryFilter, $pager, $message, ++$numberOfTrials, $outputCsv);
+			$mediaList = $this->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 		return $mediaList;
 	}
 
-	public function doCategoryEntryList($categoryEntryFilter, $numberOfTrials, $outputCsv) {
+	public function doCategoryEntryList($categoryEntryFilter, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $categoryEntryList KalturaCategoryEntryListResponse */
 
 		if($numberOfTrials > 3) {
-			fputcsv($outputCsv, array('Exceeded number of trials for this list. Going back to next list'));
+			echo $trialsExceededMessage;
 			return $categoryEntryList;
 		}
 
@@ -77,22 +77,22 @@ class ClientObject
 			return $categoryEntryList;
 
 		} catch(KalturaClientException $clientException) {
-			echo 'Client exception occured. ' . $clientException->getMessage()  . "\n\n";
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
 			$this->resetConnection();
 			sleep(3);
 
 			//retry
-			$categoryEntryList = $this->doCategoryEntryList($categoryEntryFilter, ++$numberOfTrials, $outputCsv);
+			$categoryEntryList = $this->doCategoryEntryList($categoryEntryFilter, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 		return $categoryEntryList;
 	}
 
-	public function doCategoryGet($categoryId, $numberOfTrials) {
+	public function doCategoryGet($categoryId, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $category KalturaCategory */
 
 		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for category ' . $categoryId . '. Moving on to next category' . "\n\n";
+			echo $trialsExceededMessage;
 			return $category;
 		}
 
@@ -106,22 +106,22 @@ class ClientObject
 			$this->resetConnection();
 			sleep(3);
 
-			$this->doCategoryGet($categoryId, ++$numberOfTrials);
+			$this->doCategoryGet($categoryId, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 		return $category;
 	}
 
-	public function doMediaDelete($entryId, $numberOfTrials) {
+	public function doMediaDelete($entryId, $successMessage, $trialsExceededMessage, $numberOfTrials) {
 		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
+			echo $trialsExceededMessage;
 			return;
 		}
 
 		/* @var $client KalturaClient */
 		try {
 			$this->client->media->delete($entryId);
-			echo 'Entry ' . $entryId . ' was deleted' . "\n\n";
+			echo $successMessage;
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
 
@@ -131,16 +131,16 @@ class ClientObject
 			sleep(3);
 
 			//retry
-			$this->doMediaDelete($entryId, ++$numberOfTrials);
+			$this->doMediaDelete($entryId, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 	}
 
-	public function doFlavorAssetList($flavorAssetFilter, $numberOfTrials, $outputCsv) {
+	public function doFlavorAssetList($flavorAssetFilter, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $flavorAssetList KalturaFlavorAssetListResponse */
 
 		if($numberOfTrials > 3) {
-			fputcsv($outputCsv, array('Exceeded number of trials for this list. Going back to next list'));
+			echo $trialsExceededMessage;
 			return $flavorAssetList;
 		}
 
@@ -157,7 +157,7 @@ class ClientObject
 			sleep(3);
 
 			//retry
-			$flavorAssetList = $this->doFlavorAssetList($flavorAssetFilter, ++$numberOfTrials, $outputCsv);
+			$flavorAssetList = $this->doFlavorAssetList($flavorAssetFilter, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 		return $flavorAssetList;
@@ -187,11 +187,11 @@ class ClientObject
 
 	}
 
-	public function doFlavorParamsGet($flavorParamId, $numberOfTrials) {
+	public function doFlavorParamsGet($flavorParamId, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $flavorParamObject KalturaFlavorParams */
 
 		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for this flavor. Moving on to next flavor' . "\n\n";
+			echo $trialsExceededMessage;
 			return $flavorParamObject;
 		}
 
@@ -206,10 +206,92 @@ class ClientObject
 			sleep(3);
 
 			//retry
-			$flavorParamObject = $this->doFlavorParamsGet($flavorParamId, ++$numberOfTrials);
+			$flavorParamObject = $this->doFlavorParamsGet($flavorParamId, $trialsExceededMessage, ++$numberOfTrials);
 		}
 		return $flavorParamObject;
 	}
+
+	public function doMetadataProfileList($metadataProfileFilter, $numberOfTrials) {
+		/* @var $metadataProfileList KalturaMetadataListResponse */
+
+		if($numberOfTrials > 2) {
+			echo 'Exceeded number of trials for this page. Moving on to next page' . "\n\n";
+			return $metadataProfileList;
+		}
+
+		try {
+			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
+			$metadataProfileList   = $metadataPlugin->metadataProfile->listAction($metadataProfileFilter);
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $metadataProfileList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			//new metadataProfile . list
+			$metadataProfileList = $this->doMetadataProfileList($metadataProfileFilter, ++$numberOfTrials);
+		}
+
+		return $metadataProfileList;
+	}
+
+	public function doScheduledTaskProfileList($scheduledTaskProfileFilter, $numberOfTrials) {
+		/* @var $scheduledTaskProfileList KalturaScheduledTaskProfileListResponse */
+
+		if($numberOfTrials > 2) {
+			echo 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			return $scheduledTaskProfileList;
+		}
+
+		try {
+			$scheduledTaskPlugin = KalturaScheduledTaskClientPlugin::get($this->client);
+			$scheduledTaskProfileList   = $scheduledTaskPlugin->scheduledTaskProfile->listAction($scheduledTaskProfileFilter);
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $scheduledTaskProfileList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			//new scheduledTaskProfile . list
+			$scheduledTaskProfileList = $this->doScheduledTaskProfileList($scheduledTaskProfileFilter, ++$numberOfTrials);
+		}
+
+		return $scheduledTaskProfileList;
+	}
+
+
+	public function doMetadataAdd($profileId, $entryId, $newFieldXML, $successMessage, $trialsExceededMessage, $numberOfTrials) {
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return;
+		}
+
+		//metadata . add
+		try {
+			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
+			$metadataPlugin->metadata->add($profileId, KalturaMetadataObjectType::ENTRY, $entryId, $newFieldXML);
+			echo $successMessage;
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+
+		} catch(KalturaClientException $e) {
+			echo $e->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			$this->doMetadataAdd($profileId, $entryId, $newFieldXML, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
+		}
+	}
+
 
 	public function resetConnection() {
 		$oldConfig = $this->client->getConfig();
