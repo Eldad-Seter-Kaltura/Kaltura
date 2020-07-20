@@ -38,6 +38,29 @@ class EntryAndFlavorActions
 		return array($pager, $mediaEntryFilter);
 	}
 
+	public function definePagerAndFilterForInputFile(string $entryIds500String): array {
+		$pager            = new KalturaFilterPager();
+		$pager->pageSize  = 500;
+		$pager->pageIndex = 1;         // Always getting first page by createdAt (10k case)
+
+		$mediaEntryFilter              = new KalturaMediaEntryFilter();
+		$mediaEntryFilter->orderBy     = KalturaMediaEntryOrderBy::CREATED_AT_DESC;
+		$mediaEntryFilter->idIn        = $entryIds500String;
+		return array($pager, $mediaEntryFilter);
+	}
+
+	public function getAllEntryIdsFromFile($inputEntryIdsFile): array {
+		$entryIdsArray       = array();
+		$inputEntryIdsHandle = fopen($inputEntryIdsFile, 'r');
+		fgetcsv($inputEntryIdsHandle);  //entry.id
+		while($line = fgetcsv($inputEntryIdsHandle)) {
+			$entryIdsArray [] = $line[0];
+		}
+		fclose($inputEntryIdsHandle);
+		return $entryIdsArray;
+	}
+
+
 	public function gettingTypeOfEntry(KalturaMediaEntry $currentEntry) {
 		$type = $currentEntry->mediaType;
 		switch($type) {
@@ -145,29 +168,29 @@ class EntryAndFlavorActions
 			$scheduledTaskProfileFilter                  = new KalturaScheduledTaskProfileFilter();
 			$scheduledTaskProfileFilter->systemNameEqual = "MRP";
 
-			$trialsExceededMessage    = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
 			$scheduledTaskProfileList = $this->clientObject->doScheduledTaskProfileList($scheduledTaskProfileFilter, $trialsExceededMessage, $firstTry);
 			if(count($scheduledTaskProfileList->objects)) {
-				$schedTaskProfileIds = array();
+				$scheduledTaskProfileIds = array();
 				/* @var $scheduledTaskProfile KalturaScheduledTaskProfile */
 				foreach($scheduledTaskProfileList->objects as $scheduledTaskProfile) {
-					$schedTaskProfileIds [] = $scheduledTaskProfile->id;
+					$scheduledTaskProfileIds [] = $scheduledTaskProfile->id;
 				}
 
-				$schedTaskProfileIdString = "";
+				$scheduledTaskProfileIdString = "";
 				//Rule 5
 				if($flavorParamsIdsOfRule[0] == 1248522) {
-					$schedTaskProfileIdString = "MR_" . $schedTaskProfileIds[0];
-				} //Other Rules
+					$scheduledTaskProfileIdString = "MR_" . $scheduledTaskProfileIds[0];
+				}
+				//Other Rules
 				else {
 					if($flavorParamsIdsOfRule[0] == 1248532) {
-						$schedTaskProfileIdString = "MR_" . $schedTaskProfileIds[1];
+						$scheduledTaskProfileIdString = "MR_" . $scheduledTaskProfileIds[1];
 					}
 				}
-				$xmlMRP = "<metadata><MRPsOnEntry>" . $schedTaskProfileIdString . "</MRPsOnEntry></metadata>";
+				$xmlMRP = "<metadata><MRPsOnEntry>" . $scheduledTaskProfileIdString . "</MRPsOnEntry></metadata>";
 			}
 		}
-		return array($metadataProfileId, $schedTaskProfileIdString, $xmlMRP);
+		return array($metadataProfileId, $scheduledTaskProfileIdString, $xmlMRP);
 	}
 
 

@@ -60,20 +60,20 @@ class FlavorDeletionObject
 
 	private function deleteAllFlavorsAccordingToRule($flavorParamsIdsOfRule, $flavorAssetFilter, $mediaEntryFilter, $pager, $outputCsv) {
 
-		list($metadataProfileId, $schedTaskProfileIdString, $xmlMRP) = $this->entryAndFlavorActions->generateXMLForMRP($flavorParamsIdsOfRule);
+		list($metadataProfileId, $scheduledTaskProfileIdString, $xmlMRP) = $this->entryAndFlavorActions->generateXMLForMRP($flavorParamsIdsOfRule);
 
 		$firstTry              = 1;
 		$message               = 'Total number of entries: ';
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-		$mediaList             = $this->entryAndFlavorActions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+		$baseEntryList         = $this->entryAndFlavorActions->clientObject->doBaseEntryList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
 		$i = 0;
-		while(count($mediaList->objects)) {
+		while(count($baseEntryList->objects)) {
 			echo 'Beginning of page: ' . ++$i . "\n";
-			echo 'Entries per page: ' . count($mediaList->objects) . "\n\n";
+			echo 'Entries per page: ' . count($baseEntryList->objects) . "\n\n";
 
 			/* @var $currentEntry KalturaMediaEntry */
-			foreach($mediaList->objects as $currentEntry) {
+			foreach($baseEntryList->objects as $currentEntry) {
 
 				$type = $this->entryAndFlavorActions->gettingTypeOfEntry($currentEntry);
 
@@ -91,7 +91,7 @@ class FlavorDeletionObject
 				}
 
 				//mark this entry for MR
-				$successMessage        = "Metadata- " . "MRPsOnEntry: " . $schedTaskProfileIdString . " -added for entry " . $currentEntry->id . "\n";
+				$successMessage        = "Metadata- " . "MRPsOnEntry: " . $scheduledTaskProfileIdString . " -added for entry " . $currentEntry->id . "\n";
 				$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
 				$this->entryAndFlavorActions->clientObject->doMetadataAdd($metadataProfileId, $currentEntry->id, $xmlMRP, $successMessage, $trialsExceededMessage, $firstTry);
 			}
@@ -101,7 +101,7 @@ class FlavorDeletionObject
 			//media . list - next iterations
 			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
 			$trialsExceededMessage                         = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-			$mediaList                                     = $this->entryAndFlavorActions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+			$baseEntryList                                 = $this->entryAndFlavorActions->clientObject->doBaseEntryList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
 		}
 
 		$mediaEntryFilter->createdAtGreaterThanOrEqual = NULL;  //IMPORTANT!! RESET AFTER EACH RULE!!
@@ -158,15 +158,15 @@ class FlavorDeletionObject
 		$firstTry              = 1;
 		$message               = 'Total number of entries: ';
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-		$mediaList             = $this->entryAndFlavorActions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+		$baseEntryList         = $this->entryAndFlavorActions->clientObject->doBaseEntryList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
 		$i = 0;
-		while(count($mediaList->objects)) {
+		while(count($baseEntryList->objects)) {
 			echo 'Beginning of page: ' . ++$i . "\n";
-			echo 'Entries per page: ' . count($mediaList->objects) . "\n\n";
+			echo 'Entries per page: ' . count($baseEntryList->objects) . "\n\n";
 
 			/* @var $currentEntry KalturaMediaEntry */
-			foreach($mediaList->objects as $currentEntry) {
+			foreach($baseEntryList->objects as $currentEntry) {
 
 				$type = $this->entryAndFlavorActions->gettingTypeOfEntry($currentEntry);
 
@@ -190,10 +190,84 @@ class FlavorDeletionObject
 			//media . list - next iterations
 			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
 			$trialsExceededMessage                         = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-			$mediaList                                     = $this->entryAndFlavorActions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+			$baseEntryList                                 = $this->entryAndFlavorActions->clientObject->doBaseEntryList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
 		}
 
 		$mediaEntryFilter->createdAtGreaterThanOrEqual = NULL;  //IMPORTANT!! RESET AFTER EACH RULE!!
+	}
+
+
+	public function deleteFlavorsOfEntriesFromInputFile($inputEntryIdsFile, $flavorParamsIdsOfRule, $outputPathCsv) {
+
+		$outputCsv = fopen($outputPathCsv, 'w');
+		fputcsv($outputCsv, array('EntryID', 'Name', 'MediaType', 'CategoriesFullName', 'FlavorNames', 'CreatedAt', 'UpdatedAt', 'LastPlayedAt'));
+
+		//0. build xml for MR (<MRPsOnEntry>MR_number</MRPsOnEntry>)
+		list($metadataProfileId, $scheduledTaskProfileIdString, $xmlMRP) = $this->entryAndFlavorActions->generateXMLForMRP($flavorParamsIdsOfRule);
+
+		$flavorAssetFilter              = new KalturaFlavorAssetFilter();
+		$flavorAssetFilter->statusEqual = KalturaFlavorAssetStatus::READY;
+
+		//0a. get all entry ids from file
+		$entryIdsArray = $this->entryAndFlavorActions->getAllEntryIdsFromFile($inputEntryIdsFile);
+
+		$entryIds500       = array_slice($entryIdsArray, 0, 500);
+		$entryIds500String = implode(",", $entryIds500);
+
+		list($pager, $mediaEntryFilter) = $this->entryAndFlavorActions->definePagerAndFilterForInputFile($entryIds500String);
+
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$mediaList             = $this->entryAndFlavorActions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+
+		$i = 0;
+		while(count($mediaList->objects)) {
+			echo "Beginning of page: " . ++$i . "\n";
+			echo "Count: " . count($mediaList->objects) . "\n\n";
+
+			/* @var $currentEntry KalturaMediaEntry */
+			foreach($mediaList->objects as $currentEntry) {
+
+				//1. get entry and flavor info and flavor asset ids to delete
+				$type                     = $this->entryAndFlavorActions->gettingTypeOfEntry($currentEntry);
+				$categoriesFullNameString = $this->entryAndFlavorActions->gettingCategoryNamesOfEntry($currentEntry);
+				list($flavorAssetIdParamIdWithoutSrcAndOthers, $flavorParamNamesToDelete) = $this->entryAndFlavorActions->gettingFlavorNamesAndAssetIdsToDelete($flavorParamsIdsOfRule, $flavorAssetFilter, $currentEntry);
+
+				//save data
+				$dataArray = array($currentEntry->id, $currentEntry->name, $type, $categoriesFullNameString, $flavorParamNamesToDelete, $currentEntry->createdAt, $currentEntry->updatedAt,
+					$currentEntry->lastPlayedAt);
+
+				//2. delete flavor asset ids
+				foreach(array_keys($flavorAssetIdParamIdWithoutSrcAndOthers) as $flavorAssetId) {
+					$this->entryAndFlavorActions->clientObject->doFlavorAssetDelete($flavorAssetId, $firstTry);
+				}
+
+				//3. mark this entry for MR
+				$successMessage        = "Metadata- " . "MRPsOnEntry: " . $scheduledTaskProfileIdString . " -added for entry " . $currentEntry->id . "\n";
+				$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
+				$this->entryAndFlavorActions->clientObject->doMetadataAdd($metadataProfileId, $currentEntry->id, $xmlMRP, $successMessage, $trialsExceededMessage, $firstTry);
+
+				//print data
+				fputcsv($outputCsv, $dataArray);
+			}
+
+			echo "Last entry: " . $currentEntry->id . "\n";
+			echo "End of page\n\n";
+
+			//media . list - next page (iteration)
+			$entryIds500       = array_slice($entryIdsArray, $i * 500, 500);
+			$entryIds500String = implode(",", $entryIds500);
+			if($entryIds500String == "") {
+				echo "End of entries" . "\n";
+				break;
+			}
+
+			$mediaEntryFilter->idIn = $entryIds500String;
+			$trialsExceededMessage  = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			$mediaList              = $this->entryAndFlavorActions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+		}
+
+		echo "End of function\n";
 	}
 
 }

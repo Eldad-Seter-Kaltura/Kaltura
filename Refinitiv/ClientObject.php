@@ -23,12 +23,43 @@ class ClientObject
 		$config             = new KalturaConfiguration();
 		$config->serviceUrl = $this->hostname;
 		$client             = new KalturaClient($config);
+		$client->setClientTag("kmcng");
 
-		$session = $client->generateSession($this->partnerAdminSecret, NULL, 2, $this->partnerId, 86400, 'disableentitlements');
+		$session = $client->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 7*86400, 'disableentitlements');
 		$client->setKs($session);
 		echo "Kaltura session (ks) for partner id " . $this->partnerId . " was created successfully: \n" . $client->getKs() . "\n";
 
 		$this->client = $client;
+	}
+
+	public function doBaseEntryList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $baseEntryList KalturaBaseEntryListResponse */
+
+		if($numberOfTrials > 3) {
+			echo $trialsExceededMessage;
+			return $baseEntryList;
+		}
+
+		try {
+			$baseEntryList = $this->client->baseEntry->listAction($mediaEntryFilter, $pager);
+			if($message) {
+				echo $message . $baseEntryList->totalCount . "\n\n";
+			}
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $baseEntryList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			//retry
+			$baseEntryList = $this->doBaseEntryList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $baseEntryList;
 	}
 
 	public function doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
@@ -112,7 +143,7 @@ class ClientObject
 		return $category;
 	}
 
-	public function doMediaDelete($entryId, $successMessage, $trialsExceededMessage, $numberOfTrials) {
+	public function doMediaDelete($entryId, $successMessage, $outputCsv, $dataArray, $trialsExceededMessage, $numberOfTrials) {
 		if($numberOfTrials > 2) {
 			echo $trialsExceededMessage;
 			return;
@@ -122,6 +153,8 @@ class ClientObject
 		try {
 			$this->client->media->delete($entryId);
 			echo $successMessage;
+			fputcsv($outputCsv, $dataArray);
+
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
 
@@ -131,7 +164,7 @@ class ClientObject
 			sleep(3);
 
 			//retry
-			$this->doMediaDelete($entryId, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
+			$this->doMediaDelete($entryId, $successMessage, $outputCsv, $dataArray, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 	}
@@ -211,17 +244,17 @@ class ClientObject
 		return $flavorParamObject;
 	}
 
-	public function doMetadataProfileList($metadataProfileFilter, $numberOfTrials) {
+	public function doMetadataProfileList($metadataProfileFilter, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $metadataProfileList KalturaMetadataListResponse */
 
 		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for this page. Moving on to next page' . "\n\n";
+			echo $trialsExceededMessage;
 			return $metadataProfileList;
 		}
 
 		try {
-			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
-			$metadataProfileList   = $metadataPlugin->metadataProfile->listAction($metadataProfileFilter);
+			$metadataPlugin      = KalturaMetadataClientPlugin::get($this->client);
+			$metadataProfileList = $metadataPlugin->metadataProfile->listAction($metadataProfileFilter);
 
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
@@ -233,23 +266,23 @@ class ClientObject
 			sleep(3);
 
 			//new metadataProfile . list
-			$metadataProfileList = $this->doMetadataProfileList($metadataProfileFilter, ++$numberOfTrials);
+			$metadataProfileList = $this->doMetadataProfileList($metadataProfileFilter, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 		return $metadataProfileList;
 	}
 
-	public function doScheduledTaskProfileList($scheduledTaskProfileFilter, $numberOfTrials) {
+	public function doScheduledTaskProfileList($scheduledTaskProfileFilter, $trialsExceededMessage, $numberOfTrials) {
 		/* @var $scheduledTaskProfileList KalturaScheduledTaskProfileListResponse */
 
 		if($numberOfTrials > 2) {
-			echo 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			echo $trialsExceededMessage;
 			return $scheduledTaskProfileList;
 		}
 
 		try {
-			$scheduledTaskPlugin = KalturaScheduledTaskClientPlugin::get($this->client);
-			$scheduledTaskProfileList   = $scheduledTaskPlugin->scheduledTaskProfile->listAction($scheduledTaskProfileFilter);
+			$scheduledTaskPlugin      = KalturaScheduledTaskClientPlugin::get($this->client);
+			$scheduledTaskProfileList = $scheduledTaskPlugin->scheduledTaskProfile->listAction($scheduledTaskProfileFilter);
 
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
@@ -261,14 +294,14 @@ class ClientObject
 			sleep(3);
 
 			//new scheduledTaskProfile . list
-			$scheduledTaskProfileList = $this->doScheduledTaskProfileList($scheduledTaskProfileFilter, ++$numberOfTrials);
+			$scheduledTaskProfileList = $this->doScheduledTaskProfileList($scheduledTaskProfileFilter, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
 		return $scheduledTaskProfileList;
 	}
 
 
-	public function doMetadataAdd($profileId, $entryId, $newFieldXML, $successMessage, $trialsExceededMessage, $numberOfTrials) {
+	public function doMetadataAdd($profileId, $entryId, $xml, $successMessage, $trialsExceededMessage, $numberOfTrials) {
 		if($numberOfTrials > 2) {
 			echo $trialsExceededMessage;
 			return;
@@ -277,7 +310,7 @@ class ClientObject
 		//metadata . add
 		try {
 			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
-			$metadataPlugin->metadata->add($profileId, KalturaMetadataObjectType::ENTRY, $entryId, $newFieldXML);
+			$metadataPlugin->metadata->add($profileId, KalturaMetadataObjectType::ENTRY, $entryId, $xml);
 			echo $successMessage;
 
 		} catch(KalturaException $apiException) {
@@ -288,7 +321,7 @@ class ClientObject
 			$this->resetConnection();
 			sleep(3);
 
-			$this->doMetadataAdd($profileId, $entryId, $newFieldXML, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
+			$this->doMetadataAdd($profileId, $entryId, $xml, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
 		}
 	}
 
@@ -297,7 +330,9 @@ class ClientObject
 		$oldConfig = $this->client->getConfig();
 
 		$newClient = new KalturaClient($oldConfig);
-		$ks        = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 86400, 'disableentitlements');
+		$newClient->setClientTag("kmcng");
+
+		$ks = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 7*86400, 'disableentitlements');
 		$newClient->setKs($ks);
 
 		$this->client = $newClient;
