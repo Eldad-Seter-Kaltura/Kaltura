@@ -48,4 +48,23 @@ class EntryActions
 		return array($pager, $mediaEntryFilter);
 	}
 
+	public function gettingTypeOfEntry(KalturaMediaEntry $currentEntry) {
+		$type = $currentEntry->mediaType;
+		switch($type) {
+			case KalturaMediaType::VIDEO:
+				$type = "VIDEO";
+				break;
+			case KalturaMediaType::IMAGE:
+				$type = "IMAGE";
+				break;
+			case KalturaMediaType::AUDIO:
+				$type = "AUDIO";
+				break;
+			default:
+				$type = "OTHER";
+				break;
+		}
+		return $type;
+	}
+
 }
