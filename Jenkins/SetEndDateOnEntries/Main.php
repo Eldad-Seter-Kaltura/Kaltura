@@ -1,11 +1,11 @@
 <?php
 require_once('EndDateObject.php');
 
-if($argc < 9) {
-	die('Correct run form: php Main.php {serviceUrl} {partnerId} {adminSecret} {jobType} {consoleOutputCsv} {metadataProfileId} {timeStampEndDate} {timeStampCreatedAt}' . "\n");
+if($argc < 10) {
+	die('Correct run form: php Main.php {serviceUrl} {partnerId} {adminSecret} {jobType} {consoleOutputCsv} {metadataProfileId} {$metadataProfileFieldName} {timeStampEndDate} {timeStampCreatedAt}' . "\n");
 }
 
-$endDateObject = new EndDateObject($argv[1], $argv[2], $argv[3], $argv[6], $argv[7], $argv[8]);
+$endDateObject = new EndDateObject($argv[1], $argv[2], $argv[3], $argv[6], $argv[7], $argv[8], $argv[9]);
 
 $jobType = $argv[4];
 if($jobType == "Dry_run") {

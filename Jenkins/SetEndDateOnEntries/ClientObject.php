@@ -31,32 +31,42 @@ class ClientObject
 		$this->client = $client;
 	}
 
-	public function doMetadataProfileListFields($metadataProfileId, $trialsExceededMessage, $numberOfTrials) {
-		/* @var $metadataProfileFieldList KalturaMetadataProfileFieldListResponse */
+	public function doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $numberOfTrials) {
+		$metadataProfile = new KalturaMetadataProfile();
 
 		if($numberOfTrials > 2) {
 			echo $trialsExceededMessage;
-			return $metadataProfileFieldList;
+			return $metadataProfile;
 		}
 
 		try {
 			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
-			$metadataProfileFieldList   = $metadataPlugin->metadataProfile->listFields($metadataProfileId);
+			$metadataProfile   = $metadataPlugin->metadataProfile->get($metadataProfileId);
 
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
-			return $metadataProfileFieldList;
+			return $metadataProfile;
 
 		} catch(KalturaClientException $clientException) {
 			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
 			$this->resetConnection();
 			sleep(3);
 
-			//new metadataProfile . list
-			$metadataProfileFieldList = $this->doMetadataProfileListFields($metadataProfileId, $trialsExceededMessage, ++$numberOfTrials);
+			//new metadataProfile . get
+			$metadataProfile = $this->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, ++$numberOfTrials);
 		}
 
-		return $metadataProfileFieldList;
+		return $metadataProfile;
+	}
+
+	public function resetConnection() {
+		$oldConfig = $this->client->getConfig();
+		$newClient = new KalturaClient($oldConfig);
+
+		$ks        = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 86400, 'disableentitlements');
+		$newClient->setKs($ks);
+
+		$this->client = $newClient;
 	}
 
 }

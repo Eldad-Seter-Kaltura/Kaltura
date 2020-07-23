@@ -7,8 +7,8 @@ class EndDateObject
 	/* @var $entryActions EntryActions */
 	private $entryActions;
 
-	public function __construct($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $timeStampEndDate, $timeStampCreatedAt) {
-		$this->entryActions = new EntryActions($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $timeStampEndDate, $timeStampCreatedAt);
+	public function __construct($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $metadataProfileFieldName, $timeStampEndDate, $timeStampCreatedAt) {
+		$this->entryActions = new EntryActions($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $metadataProfileFieldName, $timeStampEndDate, $timeStampCreatedAt);
 	}
 
 	public function doDryRun($outputCsvPath) {
@@ -16,16 +16,17 @@ class EndDateObject
 		fputcsv($outputCsv, array('EntryID', 'Name', 'MediaType', 'OwnerID', 'CreatedAt'));
 
 		//1. get metadata profile field name & build end date xml
-
-		$firstTry                  = 1;
-		$trialsExceededMessage     = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
 		$metadataProfileId         = $this->entryActions->getMetadataProfileId();
-		$metadataProfileListFields = $this->entryActions->clientObject->doMetadataProfileListFields($metadataProfileId, $trialsExceededMessage, $firstTry);
-		$metadataProfileFieldName  = $metadataProfileListFields->objects[0]->key;
-
-		$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
-		$xmlEndDate       = "<metadata>" . "<" . $metadataProfileFieldName . ">" . $timeStampEndDate . "</" . $metadataProfileFieldName . ">" . "</metadata>";
-		echo 'End date to be added: ' . $xmlEndDate . "\n";
+		$metadataProfileFieldName  = $this->entryActions->getMetadataProfileFieldName();
+		
+		$metadataProfileFieldNames = $this->getMetadataProfileFieldNames($metadataProfileId);
+		if(array_key_exists($metadataProfileFieldName, $metadataProfileFieldNames)) {
+			$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
+			$xmlEndDate       = "<metadata>" . "<" . $metadataProfileFieldName . ">" . $timeStampEndDate . "</" . $metadataProfileFieldName . ">" . "</metadata>";
+			echo 'End date to be added: ' . $xmlEndDate . "\n";
+		} else {
+			die('Error in field name' . "\n");
+		}
 
 //		//2. print all entries affected
 //
@@ -57,6 +58,26 @@ class EndDateObject
 
 		fclose($outputCsv);
 		echo 'End of dry run' . "\n";
+	}
+
+	private function getMetadataProfileFieldNames($metadataProfileId) {
+		//Get the XSD Fields in the correct order (metadataProfile . get)
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$metadataProfile       = $this->entryActions->clientObject->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $firstTry);
+
+		//Get all Element tags from the metadataProfile XSD
+		$xsdFields = array();
+		if($metadataProfile->xsd) {
+			$xsdElement        = new SimpleXMLElement ($metadataProfile->xsd);
+			$path              = "/xsd:schema/xsd:element/xsd:complexType/xsd:sequence/xsd:element/@name";
+			$fieldNamesElement = $xsdElement->xpath($path);
+
+			foreach($fieldNamesElement as $fieldNameElement) {
+				$xsdFields[] = strval($fieldNameElement[0]);
+			}
+		}
+		return $xsdFields;
 	}
 
 }
