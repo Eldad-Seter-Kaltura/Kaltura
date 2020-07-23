@@ -8,7 +8,8 @@ class EntryActions
 	private $timeStampEndDate;
 	private $metadataProfileId;
 
-	public ClientObject $clientObject;
+	/* @var $clientObject ClientObject */
+	public $clientObject;
 
 
 	public function __construct($serviceUrl, $partnerId, $adminSecret) {

@@ -4,7 +4,8 @@ require_once('KalturaGeneratedAPIClientsPHP/KalturaClient.php');
 
 class ClientObject
 {
-	private KalturaClient $client;
+	/* @var $client KalturaClient */
+	private $client;
 
 	private $hostname;
 
