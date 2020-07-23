@@ -16,9 +16,9 @@ class EndDateObject
 		fputcsv($outputCsv, array('EntryID', 'Name', 'MediaType', 'OwnerID', 'CreatedAt'));
 
 		//1. get metadata profile field name & build end date xml
-		$metadataProfileId         = $this->entryActions->getMetadataProfileId();
-		$metadataProfileFieldName  = $this->entryActions->getMetadataProfileFieldName();
-		
+		$metadataProfileId        = $this->entryActions->getMetadataProfileId();
+		$metadataProfileFieldName = $this->entryActions->getMetadataProfileFieldName();
+
 		$metadataProfileFieldNames = $this->getMetadataProfileFieldNames($metadataProfileId);
 		if(array_key_exists($metadataProfileFieldName, $metadataProfileFieldNames)) {
 			$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
@@ -67,16 +67,15 @@ class EndDateObject
 		$metadataProfile       = $this->entryActions->clientObject->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $firstTry);
 
 		//Get all Element tags from the metadataProfile XSD
-		$xsdFields = array();
-		if($metadataProfile->xsd) {
-			$xsdElement        = new SimpleXMLElement ($metadataProfile->xsd);
-			$path              = "/xsd:schema/xsd:element/xsd:complexType/xsd:sequence/xsd:element/@name";
-			$fieldNamesElement = $xsdElement->xpath($path);
+		$xsdElement        = new SimpleXMLElement ($metadataProfile->xsd);
+		$path              = "/xsd:schema/xsd:element/xsd:complexType/xsd:sequence/xsd:element/@name";
+		$fieldNamesElement = $xsdElement->xpath($path);
 
-			foreach($fieldNamesElement as $fieldNameElement) {
-				$xsdFields[] = strval($fieldNameElement[0]);
-			}
+		$xsdFields = array();
+		foreach($fieldNamesElement as $fieldNameElement) {
+			$xsdFields[] = strval($fieldNameElement[0]);
 		}
+
 		return $xsdFields;
 	}
 
