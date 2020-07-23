@@ -20,7 +20,7 @@ class EndDateObject
 		$metadataProfileFieldName = $this->entryActions->getMetadataProfileFieldName();
 
 		$metadataProfileFieldNames = $this->getMetadataProfileFieldNames($metadataProfileId);
-		if(array_key_exists($metadataProfileFieldName, $metadataProfileFieldNames)) {
+		if(in_array($metadataProfileFieldName, $metadataProfileFieldNames)) {
 			$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
 			$xmlEndDate       = "<metadata>" . "<" . $metadataProfileFieldName . ">" . $timeStampEndDate . "</" . $metadataProfileFieldName . ">" . "</metadata>";
 			echo 'End date to be added: ' . $xmlEndDate . "\n";
