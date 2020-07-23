@@ -59,6 +59,36 @@ class ClientObject
 		return $metadataProfile;
 	}
 
+	public function doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $mediaList KalturaMediaListResponse */
+
+		if($numberOfTrials > 3) {
+			echo $trialsExceededMessage;
+			return $mediaList;
+		}
+
+		try {
+			$mediaList = $this->client->media->listAction($mediaEntryFilter, $pager);
+			if($message) {
+				echo $message . $mediaList->totalCount . "\n\n";
+			}
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $mediaList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			//retry
+			$mediaList = $this->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $mediaList;
+	}
+
 	public function resetConnection() {
 		$oldConfig = $this->client->getConfig();
 		$newClient = new KalturaClient($oldConfig);
