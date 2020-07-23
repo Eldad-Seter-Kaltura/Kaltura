@@ -34,4 +34,18 @@ class EntryActions
 		return $this->timeStampEndDate;
 	}
 
+	public function definePagerAndFilter() {
+		$pager            = new KalturaFilterPager();
+		$pager->pageSize  = 500;
+		$pager->pageIndex = 1;         // Always getting first page by createdAt (10k handling)
+
+		$mediaEntryFilter              = new KalturaMediaEntryFilter();
+		$mediaEntryFilter->statusEqual = KalturaEntryStatus::READY;
+		$mediaEntryFilter->orderBy     = KalturaMediaEntryOrderBy::CREATED_AT_ASC;
+
+		$mediaEntryFilter->createdAtLessThanOrEqual          = $this->timeStampCreatedAt;
+
+		return array($pager, $mediaEntryFilter);
+	}
+
 }

@@ -28,14 +28,14 @@ class EndDateObject
 			die('Error in field name' . "\n");
 		}
 
-//		//2. print all entries affected
-//
-//		list($pager, $mediaEntryFilter) = $this->entryActions->definePagerAndFilter();
-//
-//		$firstTry              = 1;
-//		$message               = 'Total number of entries: ';
-//		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-//		$mediaList             = $this->entryActions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+		//2. print all entries affected
+
+		list($pager, $mediaEntryFilter) = $this->entryActions->definePagerAndFilter();
+
+		$firstTry              = 1;
+		$message               = 'Total number of entries: ';
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$mediaList             = $this->entryActions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
 //		$i = 0;
 //		while(count($mediaList->objects)) {
