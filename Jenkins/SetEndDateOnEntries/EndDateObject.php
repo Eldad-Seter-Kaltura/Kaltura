@@ -37,6 +37,12 @@ class EndDateObject
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
 		$mediaList             = $this->entryActions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
+		/* @var $currentEntry KalturaMediaEntry */
+		foreach($mediaList->objects as $currentEntry) {
+			$currentEntryMediaType = $this->entryActions->gettingTypeOfEntry($currentEntry);
+			fputcsv($outputCsv, array($currentEntry->id, $currentEntry->name, $currentEntryMediaType, $currentEntry->userId, $currentEntry->createdAt));
+		}
+		
 //		$i = 0;
 //		while(count($mediaList->objects)) {
 //			echo "Beginning of page: " . ++$i . "\n";
