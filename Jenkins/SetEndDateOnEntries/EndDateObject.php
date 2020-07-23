@@ -2,13 +2,13 @@
 require_once('EntryActions.php');
 
 
-class PopulateEndDateObject
+class EndDateObject
 {
 	/* @var $entryActions EntryActions */
 	private $entryActions;
 
-	public function __construct($serviceUrl, $partnerId, $adminSecret) {
-		$this->entryActions = new EntryActions($serviceUrl, $partnerId, $adminSecret);
+	public function __construct($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $timeStampEndDate, $timeStampCreatedAt) {
+		$this->entryActions = new EntryActions($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $timeStampEndDate, $timeStampCreatedAt);
 	}
 
 	public function doDryRun($outputCsvPath) {
@@ -17,15 +17,16 @@ class PopulateEndDateObject
 
 		//1. get metadata profile field name & build end date xml
 
-//		$firstTry                  = 1;
-//		$trialsExceededMessage     = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-//		$metadataProfileListFields = $this->entryActions->clientObject->doMetadataProfileListFields($this->entryActions->getMetadataProfileId(), $trialsExceededMessage, $firstTry);
-//		$metadataProfileFieldName  = $metadataProfileListFields->objects[0]->key;
-//
-//		$xmlData = "<metadata>" . "<" . $metadataProfileFieldName . ">" . $this->entryActions->getTimeStampEndDate() .
-//			"</" . $metadataProfileFieldName . ">" . "</metadata>";
-//		echo $xmlData . "\n";
-//
+		$firstTry                  = 1;
+		$trialsExceededMessage     = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$metadataProfileId         = $this->entryActions->getMetadataProfileId();
+		$metadataProfileListFields = $this->entryActions->clientObject->doMetadataProfileListFields($metadataProfileId, $trialsExceededMessage, $firstTry);
+		$metadataProfileFieldName  = $metadataProfileListFields->objects[0]->key;
+
+		$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
+		$xmlEndDate       = "<metadata>" . "<" . $metadataProfileFieldName . ">" . $timeStampEndDate . "</" . $metadataProfileFieldName . ">" . "</metadata>";
+		echo 'End date to be added: ' . $xmlEndDate . "\n";
+
 //		//2. print all entries affected
 //
 //		list($pager, $mediaEntryFilter) = $this->entryActions->definePagerAndFilter();

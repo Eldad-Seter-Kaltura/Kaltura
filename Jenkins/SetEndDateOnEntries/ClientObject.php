@@ -31,4 +31,32 @@ class ClientObject
 		$this->client = $client;
 	}
 
+	public function doMetadataProfileListFields($metadataProfileId, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $metadataProfileFieldList KalturaMetadataProfileFieldListResponse */
+
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return $metadataProfileFieldList;
+		}
+
+		try {
+			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
+			$metadataProfileFieldList   = $metadataPlugin->metadataProfile->listFields($metadataProfileId);
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $metadataProfileFieldList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			//new metadataProfile . list
+			$metadataProfileFieldList = $this->doMetadataProfileListFields($metadataProfileId, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $metadataProfileFieldList;
+	}
+
 }
