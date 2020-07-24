@@ -37,30 +37,24 @@ class EndDateObject
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
 		$mediaList             = $this->entryActions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
-		/* @var $currentEntry KalturaMediaEntry */
-		foreach($mediaList->objects as $currentEntry) {
-			$currentEntryMediaType = $this->entryActions->gettingTypeOfEntry($currentEntry);
-			fputcsv($outputCsv, array($currentEntry->id, $currentEntry->name, $currentEntryMediaType, $currentEntry->userId, $currentEntry->createdAt));
+		$i = 0;
+		while(count($mediaList->objects)) {
+			echo "Beginning of page: " . ++$i . "\n";
+			echo "Count: " . count($mediaList->objects) . "\n\n";
+
+			/* @var $currentEntry KalturaMediaEntry */
+			foreach($mediaList->objects as $currentEntry) {
+				$currentEntryMediaType = $this->entryActions->gettingTypeOfEntry($currentEntry);
+				fputcsv($outputCsv, array($currentEntry->id, $currentEntry->name, $currentEntryMediaType, $currentEntry->userId, $currentEntry->createdAt));
+			}
+
+			echo "Last entry: " . $currentEntry->id . "\n";
+			echo "End of page\n\n";
+
+			//media . list - next iterations
+			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
+			$mediaList                                     = $this->entryActions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
 		}
-		
-//		$i = 0;
-//		while(count($mediaList->objects)) {
-//			echo "Beginning of page: " . ++$i . "\n";
-//			echo "Count: " . count($mediaList->objects) . "\n\n";
-//
-//			/* @var $currentEntry KalturaMediaEntry */
-//			foreach($mediaList->objects as $currentEntry) {
-//				$currentEntryMediaType = $this->entryActions->gettingTypeOfEntry($currentEntry);
-//				fputcsv($outputCsv, array($currentEntry->id, $currentEntry->name, $currentEntryMediaType, $currentEntry->userId, $currentEntry->createdAt));
-//			}
-//
-//			echo "Last entry: " . $currentEntry->id . "\n";
-//			echo "End of page\n\n";
-//
-//			//media . list - next iterations
-//			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
-//			$mediaList                                     = $this->entryActions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
-//		}
 
 		fclose($outputCsv);
 		echo 'End of dry run' . "\n";
