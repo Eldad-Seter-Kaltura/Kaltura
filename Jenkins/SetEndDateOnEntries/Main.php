@@ -1,11 +1,11 @@
 <?php
 require_once('EndDateObject.php');
 
-if($argc < 10) {
-	die('Correct run form: php Main.php {serviceUrl} {partnerId} {adminSecret} {jobType} {consoleOutputCsv} {metadataProfileId} {$metadataProfileFieldName} {timeStampEndDate} {timeStampCreatedAt}' . "\n");
+if($argc < 11) {
+	die('Correct run form: php Main.php {serviceUrl} {partnerId} {adminSecret} {jobType} {consoleOutputCsv} {inputCsv} {metadataProfileId} {$metadataProfileFieldName} {timeStampEndDate} {timeStampCreatedAt}' . "\n");
 }
 
-$endDateObject = new EndDateObject($argv[1], $argv[2], $argv[3], $argv[6], $argv[7], $argv[8], $argv[9]);
+$endDateObject = new EndDateObject($argv[1], $argv[2], $argv[3], $argv[7], $argv[8], $argv[9], $argv[10]);
 
 $jobType = $argv[4];
 if($jobType == "Dry_run") {
@@ -16,6 +16,8 @@ if($jobType == "Dry_run") {
 } else {
 	if($jobType == "Full_migration") {
 		echo 'This is Full Migration!' . "\n";
+		$inputCsv = $argv[6];
+		$endDateObject->setEndDateOnEntriesFromInputFile($inputCsv);
 
 	} else {
 		die('This is error!' . "\n");

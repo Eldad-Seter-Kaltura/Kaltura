@@ -11,22 +11,46 @@ class EndDateObject
 		$this->entryActions = new EntryActions($serviceUrl, $partnerId, $adminSecret, $metadataProfileId, $metadataProfileFieldName, $timeStampEndDate, $timeStampCreatedAt);
 	}
 
+	private function getMetadataProfileFieldNames($metadataProfileId) {
+		//Get the XSD Fields in the correct order (metadataProfile . get)
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$metadataProfile       = $this->entryActions->clientObject->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $firstTry);
+
+		//Get all Element tags from the metadataProfile XSD
+		$xsdElement        = new SimpleXMLElement ($metadataProfile->xsd);
+		$path              = "/xsd:schema/xsd:element/xsd:complexType/xsd:sequence/xsd:element/@name";
+		$fieldNamesElement = $xsdElement->xpath($path);
+
+		$xsdFields = array();
+		foreach($fieldNamesElement as $fieldNameElement) {
+			$xsdFields[] = strval($fieldNameElement[0]);
+		}
+
+		return $xsdFields;
+	}
+
+	private function getMetadataProfileFieldNameAndBuildEndDateXml(): array {
+		$metadataProfileId             = $this->entryActions->getMetadataProfileId();
+		$metadataProfileInputFieldName = $this->entryActions->getMetadataProfileFieldName();
+
+		$metadataProfileFieldNames = $this->getMetadataProfileFieldNames($metadataProfileId);
+		if(in_array($metadataProfileInputFieldName, $metadataProfileFieldNames)) {
+			$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
+			$xmlEndDate       = "<metadata>" . "<" . $metadataProfileInputFieldName . ">" . $timeStampEndDate . "</" . $metadataProfileInputFieldName . ">" . "</metadata>";
+			echo 'End date to be added: ' . $xmlEndDate . "\n";
+		} else {
+			die('Error in field name' . "\n");
+		}
+		return array($metadataProfileId, $metadataProfileInputFieldName, $timeStampEndDate, $xmlEndDate);
+	}
+
 	public function doDryRun($outputCsvPath) {
 		$outputCsv = fopen($outputCsvPath, 'w');
 		fputcsv($outputCsv, array('EntryID', 'Name', 'MediaType', 'OwnerID', 'CreatedAt'));
 
 		//1. get metadata profile field name & build end date xml
-		$metadataProfileId        = $this->entryActions->getMetadataProfileId();
-		$metadataProfileFieldName = $this->entryActions->getMetadataProfileFieldName();
-
-		$metadataProfileFieldNames = $this->getMetadataProfileFieldNames($metadataProfileId);
-		if(in_array($metadataProfileFieldName, $metadataProfileFieldNames)) {
-			$timeStampEndDate = $this->entryActions->getTimeStampEndDate();
-			$xmlEndDate       = "<metadata>" . "<" . $metadataProfileFieldName . ">" . $timeStampEndDate . "</" . $metadataProfileFieldName . ">" . "</metadata>";
-			echo 'End date to be added: ' . $xmlEndDate . "\n";
-		} else {
-			die('Error in field name' . "\n");
-		}
+		list($metadataProfileId, $metadataProfileFieldName, $timeStampEndDate, $xmlEndDate) = $this->getMetadataProfileFieldNameAndBuildEndDateXml();
 
 		//2. print all entries affected
 
@@ -60,23 +84,26 @@ class EndDateObject
 		echo 'End of dry run' . "\n";
 	}
 
-	private function getMetadataProfileFieldNames($metadataProfileId) {
-		//Get the XSD Fields in the correct order (metadataProfile . get)
+	public function setEndDateOnEntriesFromInputFile($inputEntryIdsFile) {
+
+		//0. get metadata profile id, field name & build end date xml
+		list($metadataProfileId, $metadataProfileFieldName, $timeStampEndDate, $xmlEndDate) = $this->getMetadataProfileFieldNameAndBuildEndDateXml();
+
 		$firstTry              = 1;
-		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-		$metadataProfile       = $this->entryActions->clientObject->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $firstTry);
+		$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
 
-		//Get all Element tags from the metadataProfile XSD
-		$xsdElement        = new SimpleXMLElement ($metadataProfile->xsd);
-		$path              = "/xsd:schema/xsd:element/xsd:complexType/xsd:sequence/xsd:element/@name";
-		$fieldNamesElement = $xsdElement->xpath($path);
+		//1. for each entry, do metadata.add
+		$inputEntryIdsHandle = fopen($inputEntryIdsFile, 'r');
+		fgetcsv($inputEntryIdsHandle);  //entry.id
+		while($line = fgetcsv($inputEntryIdsHandle)) {
+			$entryId = $line[0];
 
-		$xsdFields = array();
-		foreach($fieldNamesElement as $fieldNameElement) {
-			$xsdFields[] = strval($fieldNameElement[0]);
+			$successMessage = "Metadata- " . $metadataProfileFieldName . ": " . $timeStampEndDate . " -added for entry " . $entryId . "\n";
+			$this->entryActions->clientObject->doMetadataAdd($metadataProfileId, $entryId, $xmlEndDate, $successMessage, $trialsExceededMessage, $firstTry);
 		}
+		fclose($inputEntryIdsHandle);
 
-		return $xsdFields;
+		echo "End of function" . "\n";
 	}
 
 }

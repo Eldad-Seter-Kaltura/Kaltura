@@ -24,39 +24,11 @@ class ClientObject
 		$config->serviceUrl = $this->hostname;
 		$client             = new KalturaClient($config);
 
-		$session = $client->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 86400, 'disableentitlements');
+		$session = $client->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 2*86400, 'disableentitlements');
 		$client->setKs($session);
 		echo "Kaltura session (ks) for partner id " . $this->partnerId . " was created successfully: \n" . $client->getKs() . "\n";
 
 		$this->client = $client;
-	}
-
-	public function doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $numberOfTrials) {
-		$metadataProfile = new KalturaMetadataProfile();
-
-		if($numberOfTrials > 2) {
-			echo $trialsExceededMessage;
-			return $metadataProfile;
-		}
-
-		try {
-			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
-			$metadataProfile   = $metadataPlugin->metadataProfile->get($metadataProfileId);
-
-		} catch(KalturaException $apiException) {
-			echo $apiException->getMessage() . "\n\n";
-			return $metadataProfile;
-
-		} catch(KalturaClientException $clientException) {
-			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
-			$this->resetConnection();
-			sleep(3);
-
-			//new metadataProfile . get
-			$metadataProfile = $this->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, ++$numberOfTrials);
-		}
-
-		return $metadataProfile;
 	}
 
 	public function doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
@@ -89,11 +61,63 @@ class ClientObject
 		return $mediaList;
 	}
 
+	public function doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, $numberOfTrials) {
+		$metadataProfile = new KalturaMetadataProfile();
+
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return $metadataProfile;
+		}
+
+		try {
+			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
+			$metadataProfile   = $metadataPlugin->metadataProfile->get($metadataProfileId);
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $metadataProfile;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			//new metadataProfile . get
+			$metadataProfile = $this->doMetadataProfileGet($metadataProfileId, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $metadataProfile;
+	}
+
+	public function doMetadataAdd($profileId, $entryId, $xmlData, $successMessage, $trialsExceededMessage, $numberOfTrials) {
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return;
+		}
+
+		//metadata . add
+		try {
+			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
+			$metadataPlugin->metadata->add($profileId, KalturaMetadataObjectType::ENTRY, $entryId, $xmlData);
+			echo $successMessage;
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+
+		} catch(KalturaClientException $e) {
+			echo $e->getMessage() . "\n\n";
+			$this->resetConnection();
+			sleep(3);
+
+			$this->doMetadataAdd($profileId, $entryId, $xmlData, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
+		}
+	}
+
 	public function resetConnection() {
 		$oldConfig = $this->client->getConfig();
 		$newClient = new KalturaClient($oldConfig);
 
-		$ks        = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 86400, 'disableentitlements');
+		$ks        = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 2*86400, 'disableentitlements');
 		$newClient->setKs($ks);
 
 		$this->client = $newClient;
