@@ -45,6 +45,35 @@ class ReportObject
 	}
 
 	public function doSecondReport($outputPathCsv) {
+		$outputCsv = fopen($outputPathCsv, 'w');
+		fputcsv($outputCsv, array('CategoryID', 'EntryID', 'FullIDs'));
+
+		list($pager, $categoryEntryFilter) = $this->actions->definePagerAndFilter("categoryEntryFilter");
+
+		$firstTry              = 1;
+		$message               = 'Total number of categories for report: ';
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$categoryEntryList     = $this->actions->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+
+		$i = 0;
+		while(count($categoryEntryList->objects)) {
+			echo 'Beginning of page: ' . ++$i . "\n";
+			echo 'Category entries per page: ' . count($categoryEntryList->objects) . "\n\n";
+
+			/* @var $categoryEntry KalturaCategoryEntry */
+			foreach($categoryEntryList->objects as $categoryEntry) {
+				$dataArray = array($categoryEntry->categoryId, $categoryEntry->entryId, $categoryEntry->categoryFullIds);
+				fputcsv($outputCsv, $dataArray);
+			}
+
+			//categoryEntry.list - next iterations
+			$categoryEntryFilter->createdAtGreaterThanOrEqual = $categoryEntry->createdAt + 1;
+			$trialsExceededMessage                            = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			$categoryEntryList                                = $this->actions->clientObject->doCategoryList($categoryEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+		}
+
+		echo "Finished printing category entries of report." . "\n\n";
+		fclose($outputCsv);
 	}
 
 	public function doThirdReport($inputPathCsv, $outputPathCsv) {
