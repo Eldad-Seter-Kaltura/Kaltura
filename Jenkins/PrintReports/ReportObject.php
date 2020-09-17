@@ -51,7 +51,7 @@ class ReportObject
 		list($pager, $categoryEntryFilter) = $this->actions->definePagerAndFilter("categoryEntryFilter");
 
 		$firstTry              = 1;
-		$message               = 'Total number of categories for report: ';
+		$message               = 'Total number of category entries for report: ';
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
 		$categoryEntryList     = $this->actions->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
@@ -68,8 +68,7 @@ class ReportObject
 
 			//categoryEntry.list - next iterations
 			$categoryEntryFilter->createdAtGreaterThanOrEqual = $categoryEntry->createdAt + 1;
-			$trialsExceededMessage                            = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-			$categoryEntryList                                = $this->actions->clientObject->doCategoryList($categoryEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+			$categoryEntryList                                = $this->actions->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
 		}
 
 		echo "Finished printing category entries of report." . "\n\n";
