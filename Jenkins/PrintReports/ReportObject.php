@@ -51,11 +51,35 @@ class ReportObject
 	}
 
 	public function doFourthReport($outputPathCsv) {
+		$outputCsv = fopen($outputPathCsv, 'w');
+		fputcsv($outputCsv, array('ID', 'Name', 'Owner', 'FullName', 'FullIDs', 'Description', 'Tags', 'Privacy', 'InheritanceType'));
+
 		list($pager, $categoryFilter) = $this->actions->definePagerAndFilter("categoryFilter");
 
 		$firstTry              = 1;
-		$message               = 'Total number of entries for report: ';
+		$message               = 'Total number of categories for report: ';
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-//		$categoryList          = $this->actions->clientObject->doCategoryList($categoryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+		$categoryList          = $this->actions->clientObject->doCategoryList($categoryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+
+		$i = 0;
+		while(count($categoryList->objects)) {
+			echo 'Beginning of page: ' . ++$i . "\n";
+			echo 'Categories per page: ' . count($categoryList->objects) . "\n\n";
+
+			/* @var $currentCategory KalturaCategory */
+			foreach($categoryList->objects as $currentCategory) {
+				$dataArray = array($currentCategory->id, $currentCategory->name, $currentCategory->owner, $currentCategory->fullName, $currentCategory->fullIds, $currentCategory->description,
+					$currentCategory->tags, $currentCategory->privacy, $currentCategory->inheritanceType);
+				fputcsv($outputCsv, $dataArray);
+			}
+
+			//category.list - next iterations
+			$categoryFilter->createdAtGreaterThanOrEqual = $currentCategory->createdAt + 1;
+			$trialsExceededMessage                       = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			$categoryList                                = $this->actions->clientObject->doCategoryList($categoryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+		}
+
+		echo "Finished printing categories of report." . "\n\n";
+		fclose($outputCsv);
 	}
 }
