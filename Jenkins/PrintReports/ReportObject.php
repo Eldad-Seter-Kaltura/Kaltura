@@ -76,6 +76,34 @@ class ReportObject
 	}
 
 	public function doThirdReport($inputPathCsv, $outputPathCsv) {
+		$outputCsv = fopen($outputPathCsv, 'w');
+		fputcsv($outputCsv, array('CategoryID', 'UserId', 'PermissionNames'));
+
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+
+		list($pager, $categoryUserFilter) = $this->actions->definePagerAndFilter("categoryUserFilter");
+
+		$categoryIdsArray = $this->actions->getAllIdsFromFile($inputPathCsv);
+		echo 'Number of categories: ' . count($categoryIdsArray) . "\n";
+
+		$i = 0;
+		foreach($categoryIdsArray as $categoryId) {
+			if(++$i % 50 == 0) {
+				echo 'Category ' . $i . ' of ' . count($categoryIdsArray) . "\n";
+			}
+
+			$categoryUserFilter->categoryIdEqual = $categoryId;
+			$categoryUserList                    = $this->actions->clientObject->doCategoryUserList($categoryUserFilter, $pager, "", $trialsExceededMessage, $firstTry);
+
+			/* @var $categoryUser KalturaCategoryUser */
+			foreach($categoryUserList->objects as $categoryUser) {
+				$dataArray = array($categoryUser->categoryId, $categoryUser->userId, $categoryUser->permissionNames);
+				fputcsv($outputCsv, $dataArray);
+			}
+		}
+		echo "Finished printing category users of report." . "\n\n";
+		fclose($outputCsv);
 	}
 
 	public function doFourthReport($outputPathCsv) {

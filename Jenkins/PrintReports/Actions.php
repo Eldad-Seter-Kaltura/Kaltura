@@ -40,5 +40,15 @@ class Actions
 		return array($pager, $filter);
 	}
 
+	public function getAllIdsFromFile($inputIdsFile): array {
+		$idsArray       = array();
+		$inputIdsHandle = fopen($inputIdsFile, 'r');
+		fgetcsv($inputIdsHandle);  //column header
+		while($line = fgetcsv($inputIdsHandle)) {
+			$idsArray [] = $line[0];
+		}
+		fclose($inputIdsHandle);
+		return $idsArray;
+	}
 
 }
