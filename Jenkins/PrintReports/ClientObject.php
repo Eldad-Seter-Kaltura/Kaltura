@@ -22,6 +22,7 @@ class ClientObject
 		$config->serviceUrl = $this->hostname;
 
 		$newClient = new KalturaClient($config);
+		$newClient->setClientTag("kmcng");
 		$ks = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 86400, 'disableentitlements');
 		$newClient->setKs($ks);
 
@@ -34,6 +35,36 @@ class ClientObject
 		}
 
 		$this->client = $newClient;
+	}
+
+	public function doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $mediaList KalturaMediaListResponse */
+
+		if($numberOfTrials > 3) {
+			echo $trialsExceededMessage;
+			return $mediaList;
+		}
+
+		try {
+			$mediaList = $this->client->media->listAction($mediaEntryFilter, $pager);
+			if($message) {
+				echo $message . $mediaList->totalCount . "\n\n";
+			}
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $mediaList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->startClientOrRefreshKsIfNeeded("refresh");
+			sleep(3);
+
+			//retry
+			$mediaList = $this->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $mediaList;
 	}
 
 	public function doBaseEntryList($baseEntryFilter, $pager, $message, $trialsExceededMessage, $numberOfTrials) {
@@ -154,6 +185,30 @@ class ClientObject
 		}
 
 		return $categoryList;
+	}
+
+	public function doCategoryGet($categoryId, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $category KalturaCategory */
+
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return $category;
+		}
+
+		try {
+			$category = $this->client->category->get($categoryId);
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->startClientOrRefreshKsIfNeeded("refresh");
+			sleep(3);
+
+			$this->doCategoryGet($categoryId, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $category;
 	}
 
 }

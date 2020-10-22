@@ -23,6 +23,10 @@ class Actions
 				$filter              = new KalturaBaseEntryFilter();
 				$filter->orderBy     = KalturaBaseEntryOrderBy::CREATED_AT_ASC;
 				break;
+			case "mediaEntryFilter":
+				$filter          = new KalturaMediaEntryFilter();
+				$filter->orderBy = KalturaMediaEntryOrderBy::CREATED_AT_ASC;
+				break;
 			case "categoryEntryFilter":
 				$filter = new KalturaCategoryEntryFilter();
 				$filter->orderBy = KalturaCategoryEntryOrderBy::CREATED_AT_ASC;
@@ -49,6 +53,61 @@ class Actions
 		}
 		fclose($inputIdsHandle);
 		return $idsArray;
+	}
+
+	public function printingTypeOfEntry($mediaType) {
+		switch($mediaType) {
+			case KalturaMediaType::VIDEO:
+				$type = "VIDEO";
+				break;
+			case KalturaMediaType::IMAGE:
+				$type = "IMAGE";
+				break;
+			case KalturaMediaType::AUDIO:
+				$type = "AUDIO";
+				break;
+			case KalturaMediaType::LIVE_STREAM_FLASH;
+			case KalturaMediaType::LIVE_STREAM_WINDOWS_MEDIA;
+			case KalturaMediaType::LIVE_STREAM_REAL_MEDIA;
+			case KalturaMediaType::LIVE_STREAM_QUICKTIME;
+				$type = "LIVE_STREAM";
+				break;
+			default:
+				$type = "OTHER";
+				break;
+		}
+		return $type;
+	}
+
+	public function gettingCategoryFullNamesOfEntry($entryId): array {
+		$categoryEntryFilter               = new KalturaCategoryEntryFilter();
+		$categoryEntryFilter->entryIdEqual = $entryId;
+
+		$pager = new KalturaFilterPager();
+
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
+		$categoryEntryList     = $this->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, $trialsExceededMessage, $firstTry);   //TODO: can return multiple results (categories)
+
+		$categoryIdsOfEntry = array();
+		if(count($categoryEntryList->objects)) {
+			foreach($categoryEntryList->objects as $categoryEntry) {
+				/* @var $categoryEntry KalturaCategoryEntry */
+				if($categoryEntry->status = KalturaCategoryEntryStatus::ACTIVE) {
+					$categoryIdsOfEntry[] = $categoryEntry->categoryId;
+				}
+			}
+		}
+
+		$categoryFullNamesOfEntry = array();
+		foreach($categoryIdsOfEntry as $categoryId) {
+			$trialsExceededMessage = 'Exceeded number of trials for category ' . $categoryId . '. Moving on to next category' . "\n\n";
+			$category              = $this->clientObject->doCategoryGet($categoryId, $trialsExceededMessage, $firstTry);
+
+			$categoryFullNamesOfEntry[] = $category->fullName;
+
+		}
+		return $categoryFullNamesOfEntry;
 	}
 
 }

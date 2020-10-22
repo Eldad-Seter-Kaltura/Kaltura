@@ -13,22 +13,25 @@ $inputCsv  = $argv[6];
 $job = new ReportObject($argv[1], $argv[2], $argv[3]);
 
 switch($jobType) {
-	case "First_report":
-		echo 'Doing first report -' . "\n";
-		$job->doFirstReport($outputCsv);
+	case "Entitled_users_entry":
+		echo 'Doing entitled users report -' . "\n";
+		$job->doEntitledUsersEntryOwnerReport($outputCsv);
 		break;
-	case "Second_report":
-		echo 'Doing second report -' . "\n";
-		$job->doSecondReport($outputCsv);
+	case "Category_entry":
+		echo 'Doing category entry report -' . "\n";
+		$job->doCategoryEntryReport($outputCsv);
 		break;
-	case "Third_report":
-		echo 'Doing third report -' . "\n";
-		$job->doThirdReport($inputCsv, $outputCsv);;
+	case "Category_user":
+		echo 'Doing category user report -' . "\n";
+		$job->doCategoryUserPermissionsReport($inputCsv, $outputCsv);;
 		break;
-	case "Fourth_report":
-		echo 'Doing fourth report -' . "\n";
-		$job->doFourthReport($outputCsv);
+	case "Category_list":
+		echo 'Doing category list report -' . "\n";
+		$job->doCategoryListReport($outputCsv);
 		break;
+	case "Entry_lastplayedat_categories":
+		echo 'Doing entry last played at categories report -' . "\n";
+		$job->doEntryLastPlayedAtCategories($outputCsv);
 	default:
 		die('no job selected');
 }

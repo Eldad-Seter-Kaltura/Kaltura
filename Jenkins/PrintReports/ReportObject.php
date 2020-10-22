@@ -11,7 +11,7 @@ class ReportObject
 		$this->actions = new Actions($serviceUrl, $partnerId, $adminSecret);
 	}
 
-	public function doFirstReport($outputPathCsv) {
+	public function doEntitledUsersEntryOwnerReport($outputPathCsv) {
 		$outputCsv = fopen($outputPathCsv, 'w');
 		fputcsv($outputCsv, array('Name', 'Description', 'Tags', 'ID', 'UserID', 'CreatedAt', 'EntitledUsersEdit', 'EntitledUsersPublish', 'EntitledUsersView', 'ThumbnailUrl'));
 
@@ -44,7 +44,7 @@ class ReportObject
 		fclose($outputCsv);
 	}
 
-	public function doSecondReport($outputPathCsv) {
+	public function doCategoryEntryReport($outputPathCsv) {
 		$outputCsv = fopen($outputPathCsv, 'w');
 		fputcsv($outputCsv, array('CategoryID', 'EntryID', 'FullIDs'));
 
@@ -75,7 +75,7 @@ class ReportObject
 		fclose($outputCsv);
 	}
 
-	public function doThirdReport($inputPathCsv, $outputPathCsv) {
+	public function doCategoryUserPermissionsReport($inputPathCsv, $outputPathCsv) {
 		$outputCsv = fopen($outputPathCsv, 'w');
 		fputcsv($outputCsv, array('CategoryID', 'UserId', 'PermissionNames'));
 
@@ -106,7 +106,7 @@ class ReportObject
 		fclose($outputCsv);
 	}
 
-	public function doFourthReport($outputPathCsv) {
+	public function doCategoryListReport($outputPathCsv) {
 		$outputCsv = fopen($outputPathCsv, 'w');
 		fputcsv($outputCsv, array('ID', 'Name', 'Owner', 'FullName', 'FullIDs', 'Description', 'Tags', 'Privacy', 'InheritanceType'));
 
@@ -138,4 +138,44 @@ class ReportObject
 		echo "Finished printing categories of report." . "\n\n";
 		fclose($outputCsv);
 	}
+
+	public function doEntryLastPlayedAtCategories($outputPathCsv) {
+		$outputCsv = fopen($outputPathCsv, 'w');
+		fputcsv($outputCsv, array('Name', 'EntryID', 'Type', 'Duration', 'CreatedAt', 'LastPlayedAt', 'Creator', 'Owner', 'Categories'));
+
+		list($pager, $mediaEntryFilter) = $this->actions->definePagerAndFilter("mediaEntryFilter");
+
+		$firstTry              = 1;
+		$message               = 'Total number of entries for report: ';
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$mediaList         = $this->actions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+
+		$i = 0;
+		while(count($mediaList->objects)) {
+			echo 'Beginning of page: ' . ++$i . "\n";
+			echo 'Entries per page: ' . count($mediaList->objects) . "\n\n";
+
+			/* @var $currentEntry KalturaMediaEntry */
+			foreach($mediaList->objects as $currentEntry) {
+				if($currentEntry->displayInSearch == KalturaEntryDisplayInSearchType::PARTNER_ONLY) {
+					$mediaTypeString         = $this->actions->printingTypeOfEntry($currentEntry->mediaType);
+					$categoryFullNamesArray = $this->actions->gettingCategoryFullNamesOfEntry($currentEntry->id);
+					$categoryFullNamesString = implode(",", $categoryFullNamesArray);
+
+					$dataArray = array($currentEntry->name, $currentEntry->id, $mediaTypeString, $currentEntry->duration, $currentEntry->createdAt, $currentEntry->lastPlayedAt,
+						$currentEntry->creatorId, $currentEntry->userId, $categoryFullNamesString);
+					fputcsv($outputCsv, $dataArray);
+				}
+			}
+
+			//media.list - next iterations
+			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
+			$trialsExceededMessage                         = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			$mediaList                                 = $this->actions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+		}
+
+		echo "Finished printing entries of report." . "\n\n";
+		fclose($outputCsv);
+	}
+
 }
