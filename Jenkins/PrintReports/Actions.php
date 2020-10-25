@@ -87,7 +87,7 @@ class Actions
 
 		$firstTry              = 1;
 		$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
-		$categoryEntryList     = $this->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, $trialsExceededMessage, $firstTry);   //TODO: can return multiple results (categories)
+		$categoryEntryList     = $this->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);   //TODO: can return multiple results (categories)
 
 		$categoryIdsOfEntry = array();
 		if(count($categoryEntryList->objects)) {
