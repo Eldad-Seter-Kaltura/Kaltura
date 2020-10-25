@@ -192,13 +192,14 @@ class ClientObject
 
 		if($numberOfTrials > 2) {
 			echo $trialsExceededMessage;
-			return $category;
+			return null;
 		}
 
 		try {
 			$category = $this->client->category->get($categoryId);
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
+			return null;
 
 		} catch(KalturaClientException $clientException) {
 			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
