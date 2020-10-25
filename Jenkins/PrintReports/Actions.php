@@ -107,6 +107,9 @@ class Actions
 			if($category) {
 				$categoryFullNamesOfEntry[] = $category->fullName;
 			}
+			else {
+				echo 'Could not get full name of category ' . $categoryId . ' that entry ' . $entryId . ' belongs to ' . "\n\n";
+			}
 
 		}
 		return $categoryFullNamesOfEntry;
