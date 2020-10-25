@@ -104,7 +104,9 @@ class Actions
 			$trialsExceededMessage = 'Exceeded number of trials for category ' . $categoryId . '. Moving on to next category' . "\n\n";
 			$category              = $this->clientObject->doCategoryGet($categoryId, $trialsExceededMessage, $firstTry);
 
-			$categoryFullNamesOfEntry[] = $category->fullName;
+			if($category) {
+				$categoryFullNamesOfEntry[] = $category->fullName;
+			}
 
 		}
 		return $categoryFullNamesOfEntry;
