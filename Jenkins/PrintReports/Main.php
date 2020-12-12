@@ -26,19 +26,19 @@ switch($jobType) {
 		break;
 	case "Category_user":
 		echo 'Doing category user report -' . "\n";
-		$job->doCategoryUserPermissionsReport($inputCsv, $outputCsv);;
+		$job->doCategoryUserPermissionsReport($inputCsv, $outputCsv);
 		break;
 	case "Category_list":
 		echo 'Doing category list report -' . "\n";
 		$job->doCategoryListReport($outputCsv);
 		break;
-	case "Entry_lastplayedat_categories":
+	case "Entry_lastPlayedAt_categories":
 		echo 'Doing entry last played at categories report -' . "\n";
 		$job->doEntryLastPlayedAtCategories($outputCsv);
 		break;
-	case "Entry_createdAt_categories":
-		echo 'Doing entry created at categories report -' . "\n";
-		$job->doEntryCreatedAtCategoriesReport($outputCsv, $createdAtLessThan, $categoriesIdsNotContains);
+	case "Entry_createdAt_not_category":
+		echo 'Doing entry created at not category report -' . "\n";
+		$job->doEntryCreatedAtNotCategoryReport($outputCsv, $createdAtLessThan, $categoriesIdsNotContains);
 		break;
 	default:
 		die('no job selected');

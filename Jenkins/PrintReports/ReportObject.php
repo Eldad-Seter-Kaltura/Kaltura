@@ -178,9 +178,9 @@ class ReportObject
 		fclose($outputCsv);
 	}
 
-	public function doEntryCreatedAtCategoriesReport($outputPathCsv, $createdAtLessThan, $categoriesIdsNotContains) {
+	public function doEntryCreatedAtNotCategoryReport($outputPathCsv, $createdAtLessThan, $categoriesIdsNotContains) {
 		$outputCsv = fopen($outputPathCsv, 'w');
-		fputcsv($outputCsv, array('EntryID', 'Name', 'Description', 'Type', 'CreatedAt', 'CategoriesIds'));
+		fputcsv($outputCsv, array('EntryID', 'Name', 'Description', 'Type', 'CreatedAt'));
 
 		list($pager, $mediaEntryFilter) = $this->actions->definePagerAndFilter("mediaEntryFilter");
 		$mediaEntryFilter->createdAtLessThanOrEqual = $createdAtLessThan;
@@ -199,10 +199,8 @@ class ReportObject
 			/* @var $currentEntry KalturaMediaEntry */
 			foreach($mediaList->objects as $currentEntry) {
 				$mediaType         = $this->actions->printingTypeOfEntry($currentEntry->mediaType);
-				$categoryIdsArray = $this->actions->gettingCategoryIdsOfEntry($currentEntry->id);
-				$categoryIdsString = implode(";", $categoryIdsArray);
 
-				$dataArray = array($currentEntry->id, $currentEntry->name, $currentEntry->description, $mediaType, $currentEntry->createdAt, $categoryIdsString);
+				$dataArray = array($currentEntry->id, $currentEntry->name, $currentEntry->description, $mediaType, $currentEntry->createdAt);
 				fputcsv($outputCsv, $dataArray);
 			}
 			//media.list - next iterations
