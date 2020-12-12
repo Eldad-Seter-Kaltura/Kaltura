@@ -80,27 +80,11 @@ class Actions
 	}
 
 	public function gettingCategoryFullNamesOfEntry($entryId): array {
-		$categoryEntryFilter               = new KalturaCategoryEntryFilter();
-		$categoryEntryFilter->entryIdEqual = $entryId;
-
-		$pager = new KalturaFilterPager();
-
-		$firstTry              = 1;
-		$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
-		$categoryEntryList     = $this->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);   //TODO: can return multiple results (categories)
-
-		$categoryIdsOfEntry = array();
-		if(count($categoryEntryList->objects)) {
-			foreach($categoryEntryList->objects as $categoryEntry) {
-				/* @var $categoryEntry KalturaCategoryEntry */
-				if($categoryEntry->status = KalturaCategoryEntryStatus::ACTIVE) {
-					$categoryIdsOfEntry[] = $categoryEntry->categoryId;
-				}
-			}
-		}
+		$categoryIdsOfEntry = $this->gettingCategoryIdsOfEntry($entryId);
 
 		$categoryFullNamesOfEntry = array();
 		foreach($categoryIdsOfEntry as $categoryId) {
+			$firstTry = 1;
 			$trialsExceededMessage = 'Exceeded number of trials for category ' . $categoryId . '. Moving on to next category' . "\n\n";
 			$category              = $this->clientObject->doCategoryGet($categoryId, $trialsExceededMessage, $firstTry);
 
@@ -114,5 +98,28 @@ class Actions
 		}
 		return $categoryFullNamesOfEntry;
 	}
+
+	public function gettingCategoryIdsOfEntry($entryId): array {
+		$categoryEntryFilter               = new KalturaCategoryEntryFilter();
+		$categoryEntryFilter->entryIdEqual = $entryId;
+
+		$pager = new KalturaFilterPager();
+
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
+		$categoryEntryList     = $this->clientObject->doCategoryEntryList($categoryEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+
+		$categoryIdsOfEntry = array();
+		if(count($categoryEntryList->objects)) {
+			foreach($categoryEntryList->objects as $categoryEntry) {
+				/* @var $categoryEntry KalturaCategoryEntry */
+				if($categoryEntry->status = KalturaCategoryEntryStatus::ACTIVE) {
+					$categoryIdsOfEntry[] = $categoryEntry->categoryId;
+				}
+			}
+		}
+		return $categoryIdsOfEntry;
+	}
+
 
 }

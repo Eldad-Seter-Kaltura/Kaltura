@@ -2,13 +2,16 @@
 require_once('ReportObject.php');
 
 
-if($argc < 7) {
-	die('Correct run form: php Main.php {serviceUrl} {partnerId} {adminSecret} {jobType} {outputCsv} {inputCsv}' . "\n");
+if($argc < 9) {
+	die('Correct run form: php Main.php {serviceUrl} {partnerId} {adminSecret} {jobType} {outputCsv} {inputCsv} {createdAtLessThan} {categoriesIdsNotContains}' . "\n");
 }
 
 $jobType   = $argv[4];
 $outputCsv = $argv[5];
 $inputCsv  = $argv[6];
+
+$createdAtLessThan = $argv[7];
+$categoriesIdsNotContains = $argv[8];
 
 $job = new ReportObject($argv[1], $argv[2], $argv[3]);
 
@@ -32,6 +35,11 @@ switch($jobType) {
 	case "Entry_lastplayedat_categories":
 		echo 'Doing entry last played at categories report -' . "\n";
 		$job->doEntryLastPlayedAtCategories($outputCsv);
+		break;
+	case "Entry_createdAt_categories":
+		echo 'Doing entry created at categories report -' . "\n";
+		$job->doEntryCreatedAtCategoriesReport($outputCsv, $createdAtLessThan, $categoriesIdsNotContains);
+		break;
 	default:
 		die('no job selected');
 }

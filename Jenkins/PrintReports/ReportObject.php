@@ -178,4 +178,39 @@ class ReportObject
 		fclose($outputCsv);
 	}
 
+	public function doEntryCreatedAtCategoriesReport($outputPathCsv, $createdAtLessThan, $categoriesIdsNotContains) {
+		$outputCsv = fopen($outputPathCsv, 'w');
+		fputcsv($outputCsv, array('EntryID', 'Name', 'Description', 'Type', 'CreatedAt', 'CategoriesIds'));
+
+		list($pager, $mediaEntryFilter) = $this->actions->definePagerAndFilter("mediaEntryFilter");
+		$mediaEntryFilter->createdAtLessThanOrEqual = $createdAtLessThan;
+		$mediaEntryFilter->categoriesIdsNotContains = $categoriesIdsNotContains;
+
+		$firstTry              = 1;
+		$message               = 'Total number of entries for report: ';
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$mediaList         = $this->actions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+
+		$i = 0;
+		while(count($mediaList->objects)) {
+			echo 'Beginning of page: ' . ++$i . "\n";
+			echo 'Entries per page: ' . count($mediaList->objects) . "\n\n";
+
+			/* @var $currentEntry KalturaMediaEntry */
+			foreach($mediaList->objects as $currentEntry) {
+				$mediaType         = $this->actions->printingTypeOfEntry($currentEntry->mediaType);
+				$categoryIdsArray = $this->actions->gettingCategoryIdsOfEntry($currentEntry->id);
+				$categoryIdsString = implode(";", $categoryIdsArray);
+
+				$dataArray = array($currentEntry->id, $currentEntry->name, $currentEntry->description, $mediaType, $currentEntry->createdAt, $categoryIdsString);
+				fputcsv($outputCsv, $dataArray);
+			}
+			//media.list - next iterations
+			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
+			$trialsExceededMessage                         = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+			$mediaList                                 = $this->actions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+		}
+		echo "Finished printing entries of report." . "\n\n";
+		fclose($outputCsv);
+	}
 }
