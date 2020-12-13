@@ -21,6 +21,10 @@ class UserObject
 				$entryId = $line[1];
 				$oldUser = $line[2];
 
+				if(!$line[3]) {
+					$oldUser = $line[4];
+					echo 'Entry ' . $entryId . ' should be fixed!' . "\n";
+				}
 				if(!isset($res[$entryId])) {
 					$res[$entryId] = $oldUser;
 				}
@@ -32,6 +36,7 @@ class UserObject
 	public function updateEntitledUsers($inputEntryIdUserIdArray, $outputCsv) {
 		$outCsv = fopen($outputCsv, 'w');
 
+		echo 'Number of entries to update: ' . count($inputEntryIdUserIdArray) . "\n";
 		foreach($inputEntryIdUserIdArray as $key => $value) {
 			$trialsExceeded = 'Exceeded trials for this entry' . $key . '\n';
 			$currentEntry   = $this->clientObject->doMediaGet($key, $trialsExceeded, 1);
