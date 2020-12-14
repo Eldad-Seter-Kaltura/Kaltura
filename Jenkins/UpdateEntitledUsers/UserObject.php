@@ -39,7 +39,12 @@ class UserObject
 		echo 'Number of entries to update: ' . count($inputEntryIdUserIdArray) . "\n";
 		foreach($inputEntryIdUserIdArray as $key => $value) {
 			$trialsExceeded = 'Exceeded trials for this entry' . $key . '\n';
-			$currentEntry   = $this->clientObject->doMediaGet($key, $trialsExceeded, 1);
+			try {
+				$currentEntry   = $this->clientObject->doMediaGet($key, $trialsExceeded, 1);
+			} catch(Exception $e) {
+				echo('An error occurred getting entry ' . $key . ' : ' . $e->getMessage() . "\n" . "Skipping\n");
+				continue;
+			}
 
 			if(isset($currentEntry) && isset($currentEntry->id) && $currentEntry->id == $key) {
 				$updatedEntry = new KalturaMediaEntry();
