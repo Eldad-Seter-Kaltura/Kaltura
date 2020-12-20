@@ -13,6 +13,19 @@ class UserObject
 		$this->clientObject = $clientObject;
 	}
 
+	public function getEntryId($inputFilePath): array {
+		$inputFile = fopen($inputFilePath, 'r');
+		$res       = array();
+		while($line = fgetcsv($inputFile)) {
+			if(in_array("entry", $line)) {
+				$entryId = $line[1];
+				$res[] = $entryId;
+			}
+
+		}
+		return $res;
+	}
+
 	public function getEntryIdUserId($inputFilePath): array {
 		$inputFile = fopen($inputFilePath, 'r');
 		$res       = array();
@@ -90,4 +103,84 @@ class UserObject
 
 		fclose($outCsv);
 	}
+
+	public function removeEntitledUserFromEntries($inputEntryIdArray, $entitledUser, $outputCsv) {
+		$outCsv = fopen($outputCsv, 'w');
+
+		$currentCount         = 0;
+		$totalCount           = count($inputEntryIdArray);
+		$numberOfProgressBars = ($totalCount < 50) ? $totalCount : 50;
+		$progressBarIncrement = ceil($totalCount / $numberOfProgressBars);
+		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
+
+
+		foreach($inputEntryIdArray as $entryId) {
+			$currentCount++;
+			if($currentCount % $progressBarIncrement == 0) {
+				$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
+			}
+
+			$trialsExceeded = 'Exceeded trials for this entry' . $entryId . '\n';
+			$currentEntry   = $this->clientObject->doMediaGet($entryId, $trialsExceeded, 1);
+
+			if(isset($currentEntry) && isset($currentEntry->id) && $currentEntry->id == $entryId) {
+				$updatedEntry = new KalturaMediaEntry();
+
+				$coEditors    = explode(',', $currentEntry->entitledUsersEdit);
+				$coPublishers = explode(',', $currentEntry->entitledUsersPublish);
+				$coViewers = explode(',', $currentEntry->entitledUsersView);
+
+				if(in_array($entitledUser, $coEditors)) {
+					$entitledKey                     = array_search($entitledUser, $coEditors);
+					$coEditors[$entitledKey]         = "";
+				}
+				$updatedEntry->entitledUsersEdit = implode(',', $coEditors);
+
+				if(in_array($entitledUser, $coPublishers)) {
+					$entitledKey                     = array_search($entitledUser, $coPublishers);
+					$coPublishers[$entitledKey]         = "";
+				}
+				$updatedEntry->entitledUsersPublish = implode(',', $coPublishers);
+
+				if(in_array($entitledUser, $coViewers)) {
+					$entitledKey                     = array_search($entitledUser, $coViewers);
+					$coViewers[$entitledKey]         = "";
+				}
+				$updatedEntry->entitledUsersView = implode(',', $coViewers);
+
+				$dataArray = array('entry', $currentEntry->id, $currentEntry->userId, $updatedEntry->userId,
+					$currentEntry->entitledUsersPublish, $updatedEntry->entitledUsersPublish,
+					$currentEntry->entitledUsersEdit, $updatedEntry->entitledUsersEdit,
+					$currentEntry->entitledUsersView, $updatedEntry->entitledUsersView);
+				$success = 'Entry update succeeded: ' . $currentEntry->id . "\n";
+
+				try {
+					$this->clientObject->doMediaUpdate($currentEntry->id, $updatedEntry, $success, $dataArray, $outCsv, $trialsExceeded, 1);
+
+				} catch(Exception $e) {
+					echo('An error occurred updating entry ' . $currentEntry->id . ' : ' . $e->getMessage());
+				}
+
+			}
+
+		}
+		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
+		echo "End of entries" . "\n";
+		fclose($outCsv);
+	}
+
+	private function calculateProgressBar(int $currentCount, int $progressBarIncrement, int $numberOfProgressBars, int $totalCount) {
+		$progressIteration = intdiv($currentCount, $progressBarIncrement);
+		$doneString        = "";
+		for($j = 0; $j < $progressIteration; $j++) {
+			$doneString .= "=";
+		}
+		$remainingString = "";
+		for($j = 0; $j < $numberOfProgressBars - ($progressIteration); $j++) {
+			$remainingString .= "-";
+		}
+		echo "\n" . $currentCount . "/" . $totalCount . "\t" . "[" . $doneString . ">" . $remainingString . "]" . "\t" . floor($currentCount / $totalCount * 100) . "%" . "\n\n";
+		return;
+	}
+
 }
