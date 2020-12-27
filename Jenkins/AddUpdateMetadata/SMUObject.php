@@ -473,4 +473,22 @@ class SMUObject
 		return $newDoc;
 	}
 
+	private function calculateProgressBar(int $currentCount, int $progressBarIncrement, int $numberOfProgressBars, int $totalCount) {
+		$progressIteration = ceil($currentCount / $progressBarIncrement);
+		if($currentCount == $totalCount) {
+			$progressIteration = $numberOfProgressBars;
+		}
+		$doneString        = "";
+		for($j = 0; $j < $progressIteration; $j++) {
+			$doneString .= "=";
+		}
+		$remainingString = "";
+		for($j = 0; $j < $numberOfProgressBars - ($progressIteration); $j++) {
+			$remainingString .= "-";
+		}
+		$percent = $totalCount ? floor($currentCount / $totalCount * 100) : 100;
+		echo "\n" . $currentCount . "/" . $totalCount . "\t" . "[" . $doneString . ">" . $remainingString . "]" . "\t" . $percent . "%" . "\n\n";
+		return;
+	}
+
 }
