@@ -1,5 +1,5 @@
 <?php
-require_once('php7/KalturaClient.php');
+require_once('KalturaGeneratedAPIClientsPHP/KalturaClient.php');
 
 
 class ClientObject
