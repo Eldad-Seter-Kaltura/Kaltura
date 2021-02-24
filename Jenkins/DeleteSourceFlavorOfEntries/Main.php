@@ -22,6 +22,6 @@ echo 'This is ' . $jobType . "!\n";
 if($jobType == "Dry_run") {
 	$job->doDryRun($consoleOutputCsv);
 } else {
-	$job->deleteSourceFlavorOfEntriesInFile($inputCsv);
+	$job->deleteSourceFlavorOfEntriesInFile($inputCsv, $consoleOutputCsv);
 }
 echo 'Job finished' . "\n";

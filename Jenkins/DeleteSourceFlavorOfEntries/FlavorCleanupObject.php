@@ -107,11 +107,13 @@ class FlavorCleanupObject
 //		echo "End of entries" . "\n";
 //	}
 
-	public function deleteSourceFlavorOfEntriesInFile($inputEntryIdsFile) {
+	public function deleteSourceFlavorOfEntriesInFile($inputEntryIdsFile, $outputPathCsv) {
 		$entryIdsArray = $this->entryAndFlavorActions->getFirstColumnFromCsvFile($inputEntryIdsFile);
 		if(!$entryIdsArray) {
 			die("Something wrong with input file!\n");
 		}
+
+		$outputCsv = fopen($outputPathCsv, 'w');
 
 		$currentCount         = 0;
 		$totalCount           = count($entryIdsArray);
@@ -140,6 +142,7 @@ class FlavorCleanupObject
 		}
 		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
 		echo "End of entries" . "\n";
+		fclose($outputCsv);
 	}
 
 	private function calculateProgressBar(int $currentCount, int $progressBarIncrement, int $numberOfProgressBars, int $totalCount) {
