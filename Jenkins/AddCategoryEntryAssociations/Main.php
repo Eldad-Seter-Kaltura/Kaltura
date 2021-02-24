@@ -26,6 +26,6 @@ if($jobType == "Dry_run") {
 //	$job->doDryRun($consoleOutputCsv);
 	die("Error!");
 } else if($jobType == "Smoke_test" || $jobType == "Full_run") {
-	$job->addCategoryEntriesFromFile($inputCsv, $separator);
+	$job->addCategoryEntriesFromFile($inputCsv, $separator, $consoleOutputCsv);
 }
 echo 'Job finished' . "\n";

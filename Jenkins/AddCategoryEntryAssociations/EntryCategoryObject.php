@@ -23,8 +23,10 @@ class EntryCategoryObject
 //		fclose($outputCsv);
 //	}
 
-	public function addCategoryEntriesFromFile($inputEntryIdsCategoryIdsFile, $separator) {
+	public function addCategoryEntriesFromFile($inputEntryIdsCategoryIdsFile, $separator, $outputPathCsv) {
 		$entryIdCategoryIdArray = $this->entryAndFlavorActions->getAllEntryIdsCategoryIdsFromFile($inputEntryIdsCategoryIdsFile, $separator);
+
+		$outputCsv = fopen($outputPathCsv, 'w');
 
 		$currentCount         = 0;
 		$totalCount           = count($entryIdCategoryIdArray);
@@ -49,6 +51,7 @@ class EntryCategoryObject
 		}
 		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
 		echo "End of entries" . "\n";
+		fclose($outputCsv);
 	}
 
 	private function calculateProgressBar(int $currentCount, int $progressBarIncrement, int $numberOfProgressBars, int $totalCount) {
