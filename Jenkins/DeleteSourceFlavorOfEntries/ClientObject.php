@@ -104,7 +104,7 @@ class ClientObject
 
 		/* @var $client KalturaClient */
 		try {
-			$client->flavorAsset->delete($flavorAssetId);
+			$this->client->flavorAsset->delete($flavorAssetId);
 			echo $successMessage;
 		} catch(KalturaException $apiException) {
 			echo $apiException->getMessage() . "\n\n";
