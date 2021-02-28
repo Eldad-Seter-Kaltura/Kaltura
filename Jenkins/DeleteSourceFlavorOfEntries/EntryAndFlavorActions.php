@@ -94,7 +94,7 @@ class EntryAndFlavorActions
 		$flavorAssetList       = $this->clientObject->doFlavorAssetList($flavorAssetFilter, $trialsExceededMessage, $firstTry);
 
 		$flavorAssetIdSource = "";
-		if($flavorAssetList->totalCount) {
+		if($flavorAssetList->totalCount > 1) {
 			foreach($flavorAssetList->objects as $flavorAsset) {
 				/* @var $flavorAsset KalturaFlavorAsset */
 				$flavorParamId = (int)($flavorAsset->flavorParamsId);
