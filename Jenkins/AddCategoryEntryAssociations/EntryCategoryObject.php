@@ -11,42 +11,36 @@ class EntryCategoryObject
 		$this->entryAndFlavorActions = new EntryAndFlavorActions($serviceUrl, $partnerId, $adminSecret);
 	}
 
-//	public function doDryRun($outputPathCsv) {
-//		$outputCsv = fopen($outputPathCsv, 'w');
-//		fputcsv($outputCsv, array('EntryID', 'Name', 'MediaType', 'CreatedAt'));
-//
-//		list($pager, $mediaEntryFilter) = $this->entryAndFlavorActions->definePagerAndFilterForDryRun();
-//
-//		echo 'Printing source flavor of entries created at more than a year ago- ' . "\n\n";
-//		$this->printSourceFlavorOfEntriesAccordingToFilter($mediaEntryFilter, $pager, $outputCsv);
-//
-//		fclose($outputCsv);
-//	}
 
 	public function addCategoryEntriesFromFile($inputEntryIdsCategoryIdsFile, $separator, $outputPathCsv) {
-		$entryIdCategoryIdArray = $this->entryAndFlavorActions->getAllEntryIdsCategoryIdsFromFile($inputEntryIdsCategoryIdsFile, $separator);
 
 		$outputCsv = fopen($outputPathCsv, 'w');
 
+		list($linesArray, $count) = $this->entryAndFlavorActions->getAllLinesAndCountFromFile($inputEntryIdsCategoryIdsFile);
+
 		$currentCount         = 0;
-		$totalCount           = count($entryIdCategoryIdArray);
+		$totalCount           = $count;
 		$numberOfProgressBars = ($totalCount < 50) ? $totalCount : 50;
 		$progressBarIncrement = ceil($totalCount / $numberOfProgressBars);
 		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
 
-		foreach($entryIdCategoryIdArray as $key => $value) {
+		foreach($linesArray as $line) {
 			$currentCount++;
 			if($currentCount % $progressBarIncrement == 0) {
 				$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
 			}
 
-			echo 'Adding entry ' . $key . ' to category ' . $value . ":\n";
-			$categoryEntry = new KalturaCategoryEntry();
-			$categoryEntry->entryId = $key;
-			$categoryEntry->categoryId = $value;
+			$entryCategoryLine = explode($separator, $line);
+			$entryId = $entryCategoryLine[0];
+			$categoryId = $entryCategoryLine[1];
 
-			$successMessage        = 'Entry ' . $key . ' was added to category ' . $value . "\n\n";
-			$trialsExceededMessage = 'Exceeded number of trials for entry ' . $key . '. Moving on to next entry' . "\n\n";
+			echo 'Adding entry ' . $entryId . ' to category ' . $categoryId . ":\n";
+			$categoryEntry = new KalturaCategoryEntry();
+			$categoryEntry->entryId = $entryId;
+			$categoryEntry->categoryId = $categoryId;
+
+			$successMessage        = 'Entry ' . $entryId . ' was added to category ' . $categoryId . "\n\n";
+			$trialsExceededMessage = 'Exceeded number of trials for entry ' . $entryId . '. Moving on to next entry' . "\n\n";
 			$this->entryAndFlavorActions->clientObject->doCategoryEntryAdd($categoryEntry, $successMessage, $trialsExceededMessage, 1);
 		}
 		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);

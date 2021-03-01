@@ -43,16 +43,18 @@ class EntryAndFlavorActions
 		return $type;
 	}
 
-	public function getAllEntryIdsCategoryIdsFromFile($inputEntryIdsCategoryIdsFile, $separator): array {
-		$entryIdCategoryIdArray        = array();
+	public function getAllLinesAndCountFromFile($inputEntryIdsCategoryIdsFile): array {
 		$inputEntryIdsCategoryIdsHandle = fopen($inputEntryIdsCategoryIdsFile, 'r');
 		fgetcsv($inputEntryIdsCategoryIdsHandle);  //entry.id cat.id column header
-		while($line = fgetcsv($inputEntryIdsCategoryIdsHandle, 1000, $separator)) {
-			//key-value
-			$entryIdCategoryIdArray [$line[0]] = $line[1];
+		$linesArray = array();
+
+		$count = 0;
+		while($line = fgets($inputEntryIdsCategoryIdsHandle, 100)) {
+			$linesArray [] = rtrim($line);
+			$count++;
 		}
 		fclose($inputEntryIdsCategoryIdsHandle);
-		return $entryIdCategoryIdArray;
+		return array($linesArray, $count);
 	}
 
 
