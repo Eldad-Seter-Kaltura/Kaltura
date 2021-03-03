@@ -107,4 +107,37 @@ class EntryAndFlavorActions
 		return $flavorAssetIdSource;
 	}
 
+	public function generateXMLForMRP() {
+		$metadataProfileId            = "";
+		$xmlMRP                       = "";
+
+		$metadataProfileFilter                  = new KalturaMetadataProfileFilter();
+		$metadataProfileFilter->systemNameEqual = "MRP";
+
+		$firstTry              = 1;
+		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
+		$metadataProfileList   = $this->clientObject->doMetadataProfileList($metadataProfileFilter, $trialsExceededMessage, $firstTry);
+
+		if(count($metadataProfileList->objects)) {
+			/* @var $metadataProfile KalturaMetadataProfile */
+			$metadataProfile   = $metadataProfileList->objects[0];
+			$metadataProfileId = $metadataProfile->id;
+
+			$scheduledTaskProfileFilter                  = new KalturaScheduledTaskProfileFilter();
+			$scheduledTaskProfileFilter->systemNameEqual = "MRP";
+			$scheduledTaskProfileList                    = $this->clientObject->doScheduledTaskProfileList($scheduledTaskProfileFilter, $trialsExceededMessage, $firstTry);
+
+			if(count($scheduledTaskProfileList->objects)) {
+				/* @var $scheduledTaskProfile KalturaScheduledTaskProfile */
+				$scheduledTaskProfile = $scheduledTaskProfileList->objects[0];
+				$scheduledTaskProfileIdString = "MR_" . $scheduledTaskProfile->id;
+				echo 'Scheduled task profile id is: ' . $scheduledTaskProfile->id . "\n";
+
+				$xmlMRP = "<metadata><Status>Enabled</Status><MRPsOnEntry>" . $scheduledTaskProfileIdString . "</MRPsOnEntry></metadata>";
+			}
+		}
+		return array($metadataProfileId, $xmlMRP);
+	}
+
+
 }

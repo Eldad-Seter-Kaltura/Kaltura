@@ -120,4 +120,85 @@ class ClientObject
 
 	}
 
+
+	public function doMetadataProfileList($metadataProfileFilter, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $metadataProfileList KalturaMetadataListResponse */
+
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return $metadataProfileList;
+		}
+
+		try {
+			$metadataPlugin      = KalturaMetadataClientPlugin::get($this->client);
+			$metadataProfileList = $metadataPlugin->metadataProfile->listAction($metadataProfileFilter);
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $metadataProfileList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->startClientOrRefreshKsIfNeeded("refresh");
+			sleep(3);
+
+			//new metadataProfile . list
+			$metadataProfileList = $this->doMetadataProfileList($metadataProfileFilter, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $metadataProfileList;
+	}
+
+	public function doScheduledTaskProfileList($scheduledTaskProfileFilter, $trialsExceededMessage, $numberOfTrials) {
+		/* @var $scheduledTaskProfileList KalturaScheduledTaskProfileListResponse */
+
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return $scheduledTaskProfileList;
+		}
+
+		try {
+			$scheduledTaskPlugin      = KalturaScheduledTaskClientPlugin::get($this->client);
+			$scheduledTaskProfileList = $scheduledTaskPlugin->scheduledTaskProfile->listAction($scheduledTaskProfileFilter);
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+			return $scheduledTaskProfileList;
+
+		} catch(KalturaClientException $clientException) {
+			echo 'Client exception occured. ' . $clientException->getMessage() . "\n\n";
+			$this->startClientOrRefreshKsIfNeeded("refresh");
+			sleep(3);
+
+			//new scheduledTaskProfile . list
+			$scheduledTaskProfileList = $this->doScheduledTaskProfileList($scheduledTaskProfileFilter, $trialsExceededMessage, ++$numberOfTrials);
+		}
+
+		return $scheduledTaskProfileList;
+	}
+
+	public function doMetadataAdd($profileId, $entryId, $xml, $successMessage, $trialsExceededMessage, $numberOfTrials) {
+		if($numberOfTrials > 2) {
+			echo $trialsExceededMessage;
+			return;
+		}
+
+		//metadata . add
+		try {
+			$metadataPlugin = KalturaMetadataClientPlugin::get($this->client);
+			$metadataPlugin->metadata->add($profileId, KalturaMetadataObjectType::ENTRY, $entryId, $xml);
+			echo $successMessage;
+
+		} catch(KalturaException $apiException) {
+			echo $apiException->getMessage() . "\n\n";
+
+		} catch(KalturaClientException $e) {
+			echo $e->getMessage() . "\n\n";
+			$this->startClientOrRefreshKsIfNeeded("refresh");
+			sleep(3);
+
+			$this->doMetadataAdd($profileId, $entryId, $xml, $successMessage, $trialsExceededMessage, ++$numberOfTrials);
+		}
+	}
+
 }
