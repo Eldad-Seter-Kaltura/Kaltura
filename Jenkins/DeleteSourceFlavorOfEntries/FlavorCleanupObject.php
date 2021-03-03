@@ -65,11 +65,51 @@ class FlavorCleanupObject
 	}
 
 
-	public function deleteSourceFlavorOfEntriesInFile($inputEntryIdsFile, $outputPathCsv) {
+	public function deleteSourceFlavorOfEntriesAndMarkForMR($inputEntryIdsFile, $outputPathCsv) {
 		//0. build xml for MR: <Status>Enabled</Status><MRPsOnEntry>MR_id</MRPsOnEntry>
 		list($metadataProfileId, $xmlMRP) = $this->entryAndFlavorActions->generateXMLForMRP();
 		echo 'Metadata to be marked on entries for MR is: ' . $xmlMRP . "\n";
 
+		$entryIdsArray = $this->entryAndFlavorActions->getFirstColumnFromCsvFile($inputEntryIdsFile);
+
+		$outputCsv = fopen($outputPathCsv, 'w');
+
+		$currentCount         = 0;
+		$totalCount           = count($entryIdsArray);
+		$numberOfProgressBars = ($totalCount < 50) ? $totalCount : 50;
+		$progressBarIncrement = ceil($totalCount / $numberOfProgressBars);
+		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
+
+		foreach($entryIdsArray as $currentEntryId) {
+			$currentCount++;
+			if($currentCount % $progressBarIncrement == 0) {
+				$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
+			}
+
+			//1. get flavor asset id to delete
+			$flavorAssetIdToDelete = $this->entryAndFlavorActions->gettingSourceFlavorAssetIdOfEntry($currentEntryId);
+
+			echo 'Deleting source flavor asset of entry ' . $currentEntryId . ' and marking for MR' . ":\n";
+
+			//2. delete flavor asset
+			if($flavorAssetIdToDelete) {
+				$successMessage        = 'Flavor asset ' . $flavorAssetIdToDelete . ' was deleted for entry ' . $currentEntryId . "\n";
+				$trialsExceededMessage = 'Exceeded number of trials for this source flavor ' . $flavorAssetIdToDelete . ' of entry ' . $currentEntryId . '. Moving on to next entry' . "\n\n";
+				$this->entryAndFlavorActions->clientObject->doFlavorAssetDelete($flavorAssetIdToDelete, $successMessage, $trialsExceededMessage, 1);
+
+				//3. mark this entry for MR
+				$successMessage        = "Metadata added for entry " . $currentEntryId . "\n\n";
+				$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
+				$this->entryAndFlavorActions->clientObject->doMetadataAdd($metadataProfileId, $currentEntryId, $xmlMRP, $successMessage, $trialsExceededMessage, 1);
+			}
+
+		}
+		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
+		echo "End of entries" . "\n";
+		fclose($outputCsv);
+	}
+
+	public function deleteSourceFlavorWithoutMarkingForMR($inputEntryIdsFile, $outputPathCsv) {
 		$entryIdsArray = $this->entryAndFlavorActions->getFirstColumnFromCsvFile($inputEntryIdsFile);
 
 		$outputCsv = fopen($outputPathCsv, 'w');
@@ -96,11 +136,6 @@ class FlavorCleanupObject
 				$successMessage        = 'Flavor asset ' . $flavorAssetIdToDelete . ' was deleted for entry ' . $currentEntryId . "\n";
 				$trialsExceededMessage = 'Exceeded number of trials for this source flavor ' . $flavorAssetIdToDelete . ' of entry ' . $currentEntryId . '. Moving on to next entry' . "\n\n";
 				$this->entryAndFlavorActions->clientObject->doFlavorAssetDelete($flavorAssetIdToDelete, $successMessage, $trialsExceededMessage, 1);
-
-				//3. mark this entry for MR
-				$successMessage        = "Metadata added for entry " . $currentEntryId . "\n\n";
-				$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
-				$this->entryAndFlavorActions->clientObject->doMetadataAdd($metadataProfileId, $currentEntryId, $xmlMRP, $successMessage, $trialsExceededMessage, 1);
 			}
 
 		}
