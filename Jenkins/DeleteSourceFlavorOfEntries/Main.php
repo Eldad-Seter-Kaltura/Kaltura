@@ -22,7 +22,7 @@ echo 'This is ' . $jobType . "!\n";
 if($jobType == "Dry_run") {
 	$job->doDryRun($consoleOutputCsv);
 } else {
-//	$job->deleteSourceFlavorOfEntriesAndMarkForMR($inputCsv, $consoleOutputCsv);
-	$job->deleteSourceFlavorWithoutMarkingForMR($inputCsv, $consoleOutputCsv);
+	$job->deleteSourceFlavorOfEntriesAndMarkForMR($inputCsv, $consoleOutputCsv);
+//	$job->deleteSourceFlavorWithoutMarkingForMR($inputCsv, $consoleOutputCsv);
 }
 echo 'Job finished' . "\n";
