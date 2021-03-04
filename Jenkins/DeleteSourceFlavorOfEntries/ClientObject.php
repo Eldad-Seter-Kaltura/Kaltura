@@ -23,7 +23,7 @@ class ClientObject
 
 		$newClient = new KalturaClient($config);
 		$newClient->setClientTag("kmcng");
-		$session = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 7 * 86400, 'all:*,disableentitlement');
+		$session = $newClient->generateSession($this->partnerAdminSecret, NULL, KalturaSessionType::ADMIN, $this->partnerId, 7 * 86400, 'disableentitlement');
 		$newClient->setKs($session);
 
 		if($action == "start") {
