@@ -89,7 +89,7 @@ class FlavorCleanupObject
 			//1. get flavor asset id to delete
 			$flavorAssetIdToDelete = $this->entryAndFlavorActions->gettingSourceFlavorAssetIdOfEntry($currentEntryId);
 
-			echo 'Deleting source flavor asset of entry ' . $currentEntryId . ' and marking for MR' . ":\n";
+			echo 'Handling entry ' . $currentEntryId . ":\n";
 
 			//2. delete flavor asset
 			if($flavorAssetIdToDelete) {
