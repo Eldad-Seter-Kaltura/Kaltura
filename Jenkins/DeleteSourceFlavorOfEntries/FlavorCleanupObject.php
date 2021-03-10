@@ -87,21 +87,22 @@ class FlavorCleanupObject
 			}
 
 			//1. get flavor asset id to delete
-			$flavorAssetIdToDelete = $this->entryAndFlavorActions->gettingSourceFlavorAssetIdOfEntry($currentEntryId);
+//			$flavorAssetIdToDelete = $this->entryAndFlavorActions->gettingSourceFlavorAssetIdOfEntry($currentEntryId);
 
 			echo 'Handling entry ' . $currentEntryId . ":\n";
 
 			//2. delete flavor asset
-			if($flavorAssetIdToDelete) {
-				$successMessage        = 'Flavor asset ' . $flavorAssetIdToDelete . ' was deleted for entry ' . $currentEntryId . "\n";
-				$trialsExceededMessage = 'Exceeded number of trials for this source flavor ' . $flavorAssetIdToDelete . ' of entry ' . $currentEntryId . '. Moving on to next entry' . "\n\n";
-				$this->entryAndFlavorActions->clientObject->doFlavorAssetDelete($flavorAssetIdToDelete, $successMessage, $trialsExceededMessage, 1);
-
-				//3. mark this entry for MR
-				$successMessage        = "Metadata added for entry " . $currentEntryId . "\n\n";
-				$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
-				$this->entryAndFlavorActions->clientObject->doMetadataAdd($metadataProfileId, $currentEntryId, $xmlMRP, $successMessage, $trialsExceededMessage, 1);
-			}
+//			if($flavorAssetIdToDelete) {
+//				$successMessage        = 'Flavor asset ' . $flavorAssetIdToDelete . ' was deleted for entry ' . $currentEntryId . "\n";
+//				$trialsExceededMessage = 'Exceeded number of trials for this source flavor ' . $flavorAssetIdToDelete . ' of entry ' . $currentEntryId . '. Moving on to next entry' . "\n\n";
+//				$this->entryAndFlavorActions->clientObject->doFlavorAssetDelete($flavorAssetIdToDelete, $successMessage, $trialsExceededMessage, 1);
+//
+//
+//			}
+			//3. mark this entry for MR
+			$successMessage        = "Metadata added for entry " . $currentEntryId . "\n\n";
+			$trialsExceededMessage = 'Exceeded number of trials for this entry. Moving on to next entry' . "\n\n";
+			$this->entryAndFlavorActions->clientObject->doMetadataAdd($metadataProfileId, $currentEntryId, $xmlMRP, $successMessage, $trialsExceededMessage, 1);
 
 		}
 		$this->calculateProgressBar($currentCount, $progressBarIncrement, $numberOfProgressBars, $totalCount);
