@@ -201,7 +201,7 @@ class ReportObject
 			foreach($baseEntryList->objects as $currentEntry) {
 				$baseEntryType         = $this->actions->printingBaseTypeOfEntry($currentEntry->type);
 				$mediaType = "";
-				if($currentEntry->mediaType) {
+				if(isset($currentEntry->mediaType)) {
 					$mediaType         = $this->actions->printingTypeOfEntry($currentEntry->mediaType);
 				}
 
