@@ -195,7 +195,7 @@ class ReportObject
 		$i = 0;
 		$lastCreatedAt = NULL;
 		$lastEntryId = "";
-		while(count($baseEntryList->objects)) {
+		while(count($baseEntryList->objects) > 1) {
 			echo 'Beginning of page: ' . ++$i . "\n";
 			echo 'Entries per page: ' . count($baseEntryList->objects) . "\n\n";
 
