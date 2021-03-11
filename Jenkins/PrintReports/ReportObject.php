@@ -180,33 +180,38 @@ class ReportObject
 
 	public function doEntryCreatedAtNotCategoryReport($outputPathCsv, $createdAtLessThan, $categoriesIdsNotContains) {
 		$outputCsv = fopen($outputPathCsv, 'w');
-		fputcsv($outputCsv, array('EntryID', 'Name', 'Description', 'Type', 'CreatedAt'));
+		fputcsv($outputCsv, array('EntryID', 'Name', 'Description', 'Type', 'MediaType', 'CreatedAt'));
 
-		list($pager, $mediaEntryFilter) = $this->actions->definePagerAndFilter("mediaEntryFilter");
-		$mediaEntryFilter->createdAtLessThanOrEqual = $createdAtLessThan;
-		$mediaEntryFilter->categoriesIdsNotContains = $categoriesIdsNotContains;
+		list($pager, $baseEntryFilter) = $this->actions->definePagerAndFilter("baseEntryFilter");
+		$baseEntryFilter->createdAtLessThanOrEqual = $createdAtLessThan;
+		$baseEntryFilter->categoriesIdsNotContains = $categoriesIdsNotContains;
+		$baseEntryFilter->typeIn = "1,10";
 
 		$firstTry              = 1;
 		$message               = 'Total number of entries for report: ';
 		$trialsExceededMessage = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-		$mediaList         = $this->actions->clientObject->doMediaList($mediaEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
+		$baseEntryList         = $this->actions->clientObject->doBaseEntryList($baseEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
 		$i = 0;
-		while(count($mediaList->objects)) {
+		while(count($baseEntryList->objects)) {
 			echo 'Beginning of page: ' . ++$i . "\n";
-			echo 'Entries per page: ' . count($mediaList->objects) . "\n\n";
+			echo 'Entries per page: ' . count($baseEntryList->objects) . "\n\n";
 
-			/* @var $currentEntry KalturaMediaEntry */
-			foreach($mediaList->objects as $currentEntry) {
-				$mediaType         = $this->actions->printingTypeOfEntry($currentEntry->mediaType);
+			/* @var $currentEntry KalturaBaseEntry */
+			foreach($baseEntryList->objects as $currentEntry) {
+				$baseEntryType         = $this->actions->printingBaseTypeOfEntry($currentEntry->type);
+				$mediaType = "";
+				if($currentEntry->mediaType) {
+					$mediaType         = $this->actions->printingTypeOfEntry($currentEntry->mediaType);
+				}
 
-				$dataArray = array($currentEntry->id, $currentEntry->name, $currentEntry->description, $mediaType, $currentEntry->createdAt);
+				$dataArray = array($currentEntry->id, $currentEntry->name, $currentEntry->description, $baseEntryType, $mediaType, $currentEntry->createdAt);
 				fputcsv($outputCsv, $dataArray);
 			}
 			//media.list - next iterations
-			$mediaEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
+			$baseEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
 			$trialsExceededMessage                         = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
-			$mediaList                                 = $this->actions->clientObject->doMediaList($mediaEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
+			$baseEntryList                                 = $this->actions->clientObject->doBaseEntryList($baseEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
 		}
 		echo "Finished printing entries of report." . "\n\n";
 		fclose($outputCsv);

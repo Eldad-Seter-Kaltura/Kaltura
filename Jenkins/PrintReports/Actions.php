@@ -79,6 +79,39 @@ class Actions
 		return $type;
 	}
 
+	public function printingBaseTypeOfEntry($baseEntryType) {
+		switch($baseEntryType) {
+			case KalturaEntryType::MEDIA_CLIP:
+				$type = "MEDIA_CLIP";
+				break;
+			case KalturaEntryType::EXTERNAL_MEDIA:
+				$type = "EXTERNAL_MEDIA";
+				break;
+			case KalturaEntryType::PLAYLIST:
+				$type = "PLAYLIST";
+				break;
+			case KalturaEntryType::MIX:
+				$type = "MIX";
+				break;
+			case KalturaEntryType::LIVE_STREAM:
+				$type = "LIVE_STREAM";
+				break;
+			case KalturaEntryType::LIVE_CHANNEL:
+				$type = "LIVE_CHANNEL";
+				break;
+			case KalturaEntryType::DOCUMENT:
+				$type = "DOCUMENT";
+				break;
+			case KalturaEntryType::DATA:
+				$type = "DATA";
+				break;
+			default:
+				$type = "OTHER";
+				break;
+		}
+		return $type;
+	}
+
 	public function gettingCategoryFullNamesOfEntry($entryId): array {
 		$categoryIdsOfEntry = $this->gettingCategoryIdsOfEntry($entryId);
 
