@@ -193,12 +193,17 @@ class ReportObject
 		$baseEntryList         = $this->actions->clientObject->doBaseEntryList($baseEntryFilter, $pager, $message, $trialsExceededMessage, $firstTry);
 
 		$i = 0;
+		$lastCreatedAt = NULL;
+		$lastEntryId = "";
 		while(count($baseEntryList->objects)) {
 			echo 'Beginning of page: ' . ++$i . "\n";
 			echo 'Entries per page: ' . count($baseEntryList->objects) . "\n\n";
 
 			/* @var $currentEntry KalturaBaseEntry */
 			foreach($baseEntryList->objects as $currentEntry) {
+				if($currentEntry->createdAt == $lastCreatedAt && $currentEntry->id == $lastEntryId) {
+					continue;
+				}
 				$baseEntryType         = $this->actions->printingBaseTypeOfEntry($currentEntry->type);
 				$mediaType = "";
 				if(isset($currentEntry->mediaType)) {
@@ -208,8 +213,11 @@ class ReportObject
 				$dataArray = array($currentEntry->id, $currentEntry->name, $currentEntry->description, $baseEntryType, $mediaType, $currentEntry->createdAt);
 				fputcsv($outputCsv, $dataArray);
 			}
+			$lastCreatedAt = $currentEntry->createdAt;
+			$lastEntryId = $currentEntry->id;
+
 			//media.list - next iterations
-			$baseEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt + 1;
+			$baseEntryFilter->createdAtGreaterThanOrEqual = $currentEntry->createdAt;
 			$trialsExceededMessage                         = 'Exceeded number of trials for this list. Moving on to next list' . "\n\n";
 			$baseEntryList                                 = $this->actions->clientObject->doBaseEntryList($baseEntryFilter, $pager, "", $trialsExceededMessage, $firstTry);
 		}
